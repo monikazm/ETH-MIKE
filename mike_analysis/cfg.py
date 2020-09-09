@@ -16,7 +16,7 @@ REDCAP_NAMES_AND_INDEX_COLS = {
     'robotic_assessments': ('RoboticAssessment', ['robotic_session_number']),
     'neurophysiology': ('Neurophysiology', []),
 }
-'''
+'''.lstrip()
 
 if not os.path.exists('config.py'):
     with open('config.py', 'w') as fout:
