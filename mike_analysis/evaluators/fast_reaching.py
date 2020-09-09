@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
+from mike_analysis.metrics.aggregate import MeanTop3, StdDevTop3
 from mike_analysis.metrics.motor import MaxVelocity
 
 ## TODO
@@ -14,6 +15,11 @@ abs_pos_error_metric = 'AbsPositionError'
 class _FastReachingSeriesEvaluator(MetricEvaluator):
     trial_metrics = (
         MaxVelocity(),
+    )
+
+    aggregator_metrics = (
+        MeanTop3(),
+        StdDevTop3()
     )
 
 
