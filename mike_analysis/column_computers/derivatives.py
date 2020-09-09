@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import butter, filtfilt
 
-from mike_analysis.core.meta import *
+from mike_analysis.core.meta import TimeCol, ForceCol, VelCol, PosCol, DfDtCol
 from mike_analysis.core.computed_columns import ColumnComputer
 
 

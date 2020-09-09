@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from mike_analysis.column_computers.derivatives import DefaultVelocityComputer
-from mike_analysis.core.meta import *
+from mike_analysis.core.meta import VelCol, ForceCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 
 

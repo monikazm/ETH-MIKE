@@ -3,7 +3,7 @@ from math import sqrt
 
 import pandas as pd
 
-from mike_analysis.core.meta import *
+from mike_analysis.core.meta import TPosCol, PosCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 
 
