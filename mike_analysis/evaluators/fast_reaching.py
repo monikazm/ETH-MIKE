@@ -2,12 +2,10 @@ from dataclasses import dataclass
 
 from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
 from mike_analysis.metrics.aggregate import MeanTop3, StdDevTop3
-from mike_analysis.metrics.motor import MaxVelocity
+from mike_analysis.metrics.motor import MaxVelocity, MaxNormalizedVelocity
+from mike_analysis.metrics.summary import NrOfTrialsWithoutReachingTarget
+from mike_analysis.metrics.temporal import MovementReactionTime
 
-## TODO
-max_normalized_velocity_metric = 'MaxNormalizedVelocity'
-nr_no_target_trials_metric = 'NrNoTargetTrials'
-rt_metric = 'ReactionTime'
 abs_pos_error_metric = 'AbsPositionError'
 
 
@@ -15,11 +13,17 @@ abs_pos_error_metric = 'AbsPositionError'
 class _FastReachingSeriesEvaluator(MetricEvaluator):
     trial_metrics = (
         MaxVelocity(),
+        MaxNormalizedVelocity(),
+        MovementReactionTime(),
     )
 
     aggregator_metrics = (
-        MeanTop3(),
-        StdDevTop3()
+        MeanTop3([MovementReactionTime.name]),
+        StdDevTop3([MovementReactionTime.name]),
+    )
+
+    summary_metrics = (
+        NrOfTrialsWithoutReachingTarget(),
     )
 
 

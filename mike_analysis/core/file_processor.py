@@ -4,8 +4,8 @@ from typing import List, Any
 import pandas as pd
 from nptdms import TdmsFile
 
-from mike_analysis.evaluators import *
 from mike_analysis.core.meta import tdms_cols, col_names, Modes, TrialCol, RStateCol, TimeCol, ForceCol, PosCol, SPosCol, TPosCol, TSCol
+from mike_analysis.evaluators import *
 
 
 def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_from_db: List[Dict[str, Any]]) -> Dict:

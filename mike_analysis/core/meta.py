@@ -11,13 +11,14 @@ TPosCol = 'TargetPos'
 ForceCol = 'Force'
 VelCol = 'Velocity'
 DfDtCol = 'dFdT'
+VelSensorCol = 'VelocityMeasured'
 
-col_names = [TimeCol, TrialCol, TSCol, RStateCol, PosCol, SPosCol, TPosCol, ForceCol]
+col_names = [TimeCol, TrialCol, TSCol, RStateCol, PosCol, SPosCol, TPosCol, ForceCol]#, VelSensorCol]
 
 # Matching columns names in csv and tdms files
 csv_cols = ['Time', 'TrialNr', 'TargetState', 'RomState', 'Position', 'StartingPosition', 'TargetPosition', 'Force']
 tdms_cols = ['Time [s]', 'Trial Nr', 'Target state?', 'ROM State 0-Active 1-Passive 2-Automatic', 'Position [deg]',
-             'Starting position [deg]', 'Target Position [deg]', 'Force filtered [N] ']
+             'Starting position [deg]', 'Target Position [deg]', 'Force filtered [N] ']#, 'Velocity [deg/s]']
 
 
 class SqlTypes:

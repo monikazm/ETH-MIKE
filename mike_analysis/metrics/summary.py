@@ -4,6 +4,7 @@ from typing import List
 
 import pandas as pd
 
+from mike_analysis.core.meta import SPosCol, PosCol, TPosCol
 from mike_analysis.core.metric import RowType, Scalar, SummaryMetric, DTypes
 
 
@@ -21,3 +22,17 @@ class DeltaRMSE(SummaryMetric):
             delta = db_trial_result[self.target_col] - db_trial_result[self.actual_col]
             squared_sum += delta * delta
         return sqrt(squared_sum / len(db_trial_results))
+
+
+@dataclass
+class NrOfTrialsWithoutReachingTarget(SummaryMetric):
+    name = 'TrialsWhereTargetNotReachedPerc'
+    d_type = DTypes.DOUBLE
+
+    def compute_metric_value(self, all_trials: List[pd.DataFrame], db_trial_results: List[RowType]) -> Scalar:
+        total_trial_count = len(all_trials)
+        count_where_target_not_reached = 0
+        for trial in all_trials:
+            if ((trial[SPosCol] < trial[TPosCol]) == (trial[PosCol] >= trial[TPosCol])).any():
+                count_where_target_not_reached += 1
+        return float(count_where_target_not_reached) / float(total_trial_count)

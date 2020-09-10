@@ -1,6 +1,7 @@
+import collections
 from abc import ABCMeta
 from dataclasses import dataclass
-from typing import List, Dict, Union, Tuple, ClassVar, Set
+from typing import List, Dict, Union, Tuple, ClassVar, OrderedDict
 
 import pandas as pd
 
@@ -26,12 +27,12 @@ class MetricEvaluator(metaclass=ABCMeta):
 
     series_metric_computers: ClassVar[Tuple['MetricEvaluator', ...]] = ()
 
-    def get_required_column_computers(self) -> Set[ColumnComputer]:
-        column_computers = set()
+    def get_required_column_computers(self) -> OrderedDict[ColumnComputer, None]:
+        column_computers = collections.OrderedDict()
         for computer in self.series_metric_computers:
             column_computers.update(computer.get_required_column_computers())
         for metric in self.trial_metrics + self.diff_metrics + self.summary_metrics + self.aggregator_metrics:
-            column_computers.update(metric.required_column_computers)
+            column_computers.update((computer, None) for computer in metric.required_column_computers)
         return column_computers
 
     def get_result_column_names_and_types(self) -> List[Tuple[str, str]]:
