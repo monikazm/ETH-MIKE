@@ -65,6 +65,7 @@ def main(db_path, data_dir):
     migrator.migrate_table_data(Tables.Session)
 
     if cfg.REDCAP_IMPORT:
+        start = timer()
         rc = RedCap(api_url=cfg.REDCAP_URL, token=cfg.RECAP_API_TOKEN)
 
         # Request datadict over API
@@ -84,7 +85,7 @@ def main(db_path, data_dir):
         for form in redcap_columns.keys():
             events = event_map[event_map['form'] == form]
             if events.loc[:, 'unique_event_name'].isin(repeating_events).any():
-                key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', 'varchar not null'), ('redcap_repeat_instance', 'integer')]
+                key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', 'varchar not null'), ('redcap_repeat_instance', 'integer not null')]
             elif len(events) > 1:
                 key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', f'varchar not null')]
             else:
@@ -99,7 +100,11 @@ def main(db_path, data_dir):
         for form, columns in redcap_all_columns.items():
             all_col_names = [name for name, _ in columns]
             col_names = [name for name, _ in redcap_columns[form]]
-            form_data = data.loc[:, all_col_names].dropna(how='all', subset=col_names).replace({pd.NA: None})
+            form_data = data.loc[:, all_col_names].dropna(how='all', subset=col_names)
+            if 'redcap_repeat_instance' in form_data.columns:
+                form_data.loc[:, 'redcap_repeat_instance'].fillna(0, inplace=True)
+            form_data = form_data.replace({pd.NA: None})
+
             records = form_data.values.tolist()
 
             metric_column_names = f', '.join(all_col_names)
@@ -108,6 +113,8 @@ def main(db_path, data_dir):
             insert_stmt = f'INSERT OR REPLACE INTO "{pretty_name}" ({metric_column_names}) VALUES {insert_placeholder}'
             out_conn.executemany(insert_stmt, records)
         out_conn.commit()
+        end = timer()
+        print(f'Done with redcap import, elapsed: {end - start}s')
 
     # Create result tables which store result results for each session/hand combination for a particular assessment
     metric_col_names_for_mode = {}
