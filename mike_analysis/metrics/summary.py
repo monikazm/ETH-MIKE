@@ -33,6 +33,8 @@ class NrOfTrialsWithoutReachingTarget(SummaryMetric):
         total_trial_count = len(all_trials)
         count_where_target_not_reached = 0
         for trial in all_trials:
-            if ((trial[SPosCol] < trial[TPosCol]) == (trial[PosCol] >= trial[TPosCol])).any():
+            no_position_past_target = ((trial[SPosCol] < trial[TPosCol]) == (trial[PosCol] < trial[TPosCol])).all()
+            no_position_close_to_target = ((trial[TPosCol] - trial[PosCol]).abs() > 3.0).all()
+            if no_position_past_target and no_position_close_to_target:
                 count_where_target_not_reached += 1
         return float(count_where_target_not_reached) / float(total_trial_count)

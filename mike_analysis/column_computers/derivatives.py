@@ -28,8 +28,8 @@ class VelocityComputer(ColumnComputer):
         data[VelCol] = filtfilt(b, a, data[PosCol])
         dp_dt = data[VelCol].diff() / data[TimeCol].diff()
         dp_dt.iloc[0] = dp_dt.iloc[1]
-        return filtfilt(b, a, dp_dt)
+        return filtfilt(b, a, dp_dt.abs())
 
 
 DefaultForceDerivativeComputer = ForceDerivativeComputer(DfDtCol)
-DefaultVelocityComputer = VelocityComputer(VelCol)
+DefaultAbsVelocityComputer = VelocityComputer(VelCol)
