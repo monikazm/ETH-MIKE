@@ -294,7 +294,7 @@ if __name__ == '__main__':
     elif cfg.USE_DB_FROM_UPLOAD_DIR:
         db_paths = os.listdir(os.path.join(cfg.PATH_TO_POLYBOX_UPLOAD_DIR, 'Database Backups'))
         if db_paths:
-            db_path = os.path.join(cfg.PATH_TO_POLYBOX_UPLOAD_DIR, max(db_paths))
+            db_path = os.path.join(cfg.PATH_TO_POLYBOX_UPLOAD_DIR, 'Database Backups', max(db_paths))
         else:
             db_path = 'db.db'
     else:
