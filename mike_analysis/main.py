@@ -1,10 +1,12 @@
 import multiprocessing
 import os
+import shutil
 import sqlite3
 import sys
 from contextlib import nullcontext
 from timeit import default_timer as timer
 from typing import Tuple, List, Dict, Any
+from zipfile import ZipFile
 
 import pandas as pd
 # from pyinstrument import Profiler
@@ -46,13 +48,17 @@ def create_redcap_table(migrator, columns, key_cols, table_name, table_indices):
                                                                  f'CREATE INDEX {table_name}_{index} ON {table_name} ({index})')
 
 
-def main(db_path, data_dir):
+def main(db_path: str, polybox_upload_dir: str, data_dir: str):
     def ts_adapter(timestamp: pd.Timestamp) -> str:
         return pd.to_datetime(timestamp).strftime('%Y-%m-%d')
     sqlite3.register_adapter(pd.Timestamp, ts_adapter)
 
-    in_conn = sqlite3.connect(db_path)
-    out_conn = sqlite3.connect('analysis_db.db')
+    try:
+        in_conn = sqlite3.connect(db_path)
+        out_conn = sqlite3.connect('analysis_db.db')
+    except Exception as e:
+        print(f'ERROR: Failed to open db\n{e}')
+        sys.exit(-1)
 
     migrator = TableMigrator(in_conn, out_conn)
 
@@ -201,7 +207,29 @@ def main(db_path, data_dir):
         ith_session_for_assessment = len(prior_assessments)
 
         if not os.path.exists(path):
-            continue
+            user_backup_dir = os.path.join(polybox_upload_dir, 'Session Results', subject_nr)
+            not_found = True
+            if os.path.exists(user_backup_dir):
+                files = [os.path.join(user_backup_dir, file) for file in os.listdir(user_backup_dir) if file.startswith(f'sid_{assessment["SessionId"]}')]
+                rel_path = '/'.join([ModeDescs[task_type], f"{'Right' if left_hand == 0 else 'Left'} Hand", f"{assessment['FmtStartTime']}.tdms"])
+                for file in sorted(files, reverse=True):
+                    try:
+                        with ZipFile(file, 'r') as f:
+                            if rel_path in f.namelist():
+                                os.makedirs(os.path.dirname(path), exist_ok=True)
+                                with f.open(rel_path) as i, open(path, 'wb') as o:
+                                    shutil.copyfileobj(i, o)
+                                try:
+                                    with f.open(f'{rel_path}_index') as i, open(f'{path}_index', 'wb') as o:
+                                        shutil.copyfileobj(i, o)
+                                except FileNotFoundError as e:
+                                    print(f'WARN: tdms_index file missing from archive\n{e}')
+                                not_found = False
+                                break
+                    except Exception as e:
+                        print(f'Error while reading zip file {file}\n{e}')
+            if not_found:
+                continue
 
         result_table = Tables.Results[mode]
         result_evaluator = metric_evaluator_for_mode[mode]
@@ -259,6 +287,21 @@ def process(args: Tuple[str, List[Dict[str, Any]], int, int, int, int, bool]):
 if __name__ == '__main__':
     #profiler = Profiler()
     #profiler.start()
-    main(r'G:\RelabZivi\DataAnalysis\Pilot Longitudinal Study Data\db.db', r'G:\RelabZivi\DataAnalysis\Pilot Longitudinal Study Data\Raw')
+    if len(sys.argv) > 1:
+        db_path = sys.argv[1]
+    elif cfg.DB_PATH:
+        db_path = cfg.DB_PATH
+    elif cfg.USE_DB_FROM_UPLOAD_DIR:
+        db_paths = os.listdir(os.path.join(cfg.PATH_TO_POLYBOX_UPLOAD_DIR, 'Database Backups'))
+        if db_paths:
+            db_path = os.path.join(cfg.PATH_TO_POLYBOX_UPLOAD_DIR, max(db_paths))
+        else:
+            db_path = 'db.db'
+    else:
+        db_path = 'db.db'
+
+    main(db_path,
+         cfg.PATH_TO_POLYBOX_UPLOAD_DIR,
+         cfg.PATH_TO_DATA_ROOT_DIR)
     #profiler.stop()
     #print(profiler.output_text(unicode=True, color=True))
