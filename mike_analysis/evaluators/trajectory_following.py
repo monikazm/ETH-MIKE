@@ -1,15 +1,21 @@
 from dataclasses import dataclass
 
 from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
-from mike_analysis.metrics.positional import RMSError
+from mike_analysis.metrics.motor import MAPR, VelocitySD
+from mike_analysis.metrics.positional import RMSError, MinRom, Rom
 
 
 # TODO (other metrics)
+# mean_abs_shift, mean_abs_peakdiff, std_peak_amplitude, NIJ, R^2
 
 @dataclass
 class _TrajectoryFollowingSeriesEvaluator(MetricEvaluator):
     trial_metrics = (
         RMSError(),
+        MAPR(),
+        MinRom(),
+        Rom(),
+        VelocitySD(),
     )
 
 

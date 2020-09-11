@@ -29,6 +29,26 @@ class MaxNormalizedVelocity(TrialMetric):
 
 
 @dataclass
+class MAPR(TrialMetric):
+    name = 'MAPR'
+    required_column_computers = (DefaultAbsVelocityComputer,)
+
+    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+        v_thresh = 0.2 * trial_data[VelCol].mean()
+        mapr = (trial_data[VelCol] < v_thresh).sum() / float(len(trial_data))
+        return mapr
+
+
+@dataclass
+class VelocitySD(TrialMetric):
+    name = 'VelocitySD'
+    required_column_computers = (DefaultAbsVelocityComputer,)
+
+    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+        return trial_data[VelCol].std()
+
+
+@dataclass
 class MaxForce(TrialMetric):
     name = 'MaxForce'
 
