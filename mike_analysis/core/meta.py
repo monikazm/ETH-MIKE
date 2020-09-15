@@ -1,5 +1,7 @@
 # Standardized column names
+from contextlib import contextmanager
 from enum import IntEnum
+from timeit import default_timer as timer
 
 TimeCol = 'Time'
 TrialCol = 'Trial'
@@ -68,3 +70,11 @@ class Tables:
     Assessment = 'Assessment'
     Session = 'Session'
     Results = {m: f'{m.name}Result' for m in Modes}
+
+
+@contextmanager
+def time_measured(desc: str):
+    start = timer()
+    yield
+    end = timer()
+    print(f'Done with {desc}, elapsed: {end - start:.2f}s')
