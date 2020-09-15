@@ -3,6 +3,7 @@ import os
 import shutil
 import sqlite3
 import sys
+import pathlib
 from contextlib import nullcontext
 from timeit import default_timer as timer
 from typing import Tuple, List, Dict, Any
@@ -54,7 +55,7 @@ def main(db_path: str, polybox_upload_dir: str, data_dir: str):
     sqlite3.register_adapter(pd.Timestamp, ts_adapter)
 
     try:
-        in_conn = sqlite3.connect(db_path)
+        in_conn = sqlite3.connect(f'{pathlib.Path(db_path).absolute().as_uri()}?mode=ro', uri=True) # Open db.db in read-only mode
         out_conn = sqlite3.connect('analysis_db.db')
     except Exception as e:
         print(f'ERROR: Failed to open db\n{e}')
@@ -63,127 +64,141 @@ def main(db_path: str, polybox_upload_dir: str, data_dir: str):
     migrator = TableMigrator(in_conn, out_conn)
 
     # Copy patient and session data from input database
-    migrator.migrate_table_index_or_view(Tables.Patient)
-    migrator.migrate_table_index_or_view(f'{Tables.Patient}_SubjectNr')
-    migrator.migrate_table_data(Tables.Patient)
-    migrator.migrate_table_index_or_view(Tables.Session)
-    migrator.migrate_table_index_or_view(f'{Tables.Session}_PatientId')
-    migrator.migrate_table_data(Tables.Session)
+    def copy_patient_and_session_data():
+        migrator.migrate_table_index_or_view(Tables.Patient)
+        migrator.migrate_table_index_or_view(f'{Tables.Patient}_SubjectNr')
+        migrator.migrate_table_data(Tables.Patient)
+        migrator.migrate_table_index_or_view(Tables.Session)
+        migrator.migrate_table_index_or_view(f'{Tables.Session}_PatientId')
+        migrator.migrate_table_data(Tables.Session)
+    copy_patient_and_session_data()
 
     if cfg.REDCAP_IMPORT:
-        start = timer()
-        rc = RedCap(api_url=cfg.REDCAP_URL, token=cfg.RECAP_API_TOKEN)
+        def import_from_redcap_if_e():
+            start = timer()
+            rc = RedCap(api_url=cfg.REDCAP_URL, token=cfg.RECAP_API_TOKEN)
 
-        # Request datadict over API
-        redcap_columns = rc.export_columns(redcap_excluded_fields={cfg.REDCAP_RECORD_IDENTIFIER} | cfg.REDCAP_EXCLUDED_COLS)
+            # Request datadict over API
+            redcap_columns = rc.export_columns(redcap_excluded_fields={cfg.REDCAP_RECORD_IDENTIFIER} | cfg.REDCAP_EXCLUDED_COLS)
 
-        # Request form and event metadata
-        repeating_forms_and_events = rc.export_repeating_events()
-        repeating_events = repeating_forms_and_events[repeating_forms_and_events['event_name'].notna()]['event_name'].unique()
-        if repeating_forms_and_events[repeating_forms_and_events['form_name'].notna()]['form_name'].unique().size > 0:
-            print('WARNING, mike_analysis does not support repeating forms/instruments yet')
-            sys.exit(1)
-        event_map = rc.export_event_map()
+            # Request form and event metadata
+            repeating_forms_and_events = rc.export_repeating_events()
+            repeating_events = repeating_forms_and_events[repeating_forms_and_events['event_name'].notna()]['event_name'].unique()
+            if repeating_forms_and_events[repeating_forms_and_events['form_name'].notna()]['form_name'].unique().size > 0:
+                print('WARNING, mike_analysis does not support repeating forms/instruments yet')
+                sys.exit(1)
+            event_map = rc.export_event_map()
 
-        # Split forms into different categories depending on whether they are repeated or not (-> different primary keys)
-        # and build corresponding tables
-        redcap_all_columns = {}
-        for form in redcap_columns.keys():
-            events = event_map[event_map['form'] == form]
-            if events.loc[:, 'unique_event_name'].isin(repeating_events).any():
-                key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', 'varchar not null'), ('redcap_repeat_instance', 'integer not null')]
-            elif len(events) > 1:
-                key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', f'varchar not null')]
-            else:
-                key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ]
+            # Split forms into different categories depending on whether they are repeated or not (-> different primary keys)
+            # and build corresponding tables
+            redcap_all_columns = {}
+            for form in redcap_columns.keys():
+                events = event_map[event_map['form'] == form]
+                if events.loc[:, 'unique_event_name'].isin(repeating_events).any():
+                    key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', 'varchar not null'), ('redcap_repeat_instance', 'integer not null')]
+                elif len(events) > 1:
+                    key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', f'varchar not null')]
+                else:
+                    key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ]
 
-            redcap_all_columns[form] = key + redcap_columns[form]
-            create_redcap_table(migrator, redcap_all_columns[form], [name for name, _ in key], *cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
+                redcap_all_columns[form] = key + redcap_columns[form]
+                create_redcap_table(migrator, redcap_all_columns[form], [name for name, _ in key], *cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
 
-        # Build tables
-        date_cols = [name for cols in redcap_columns.values() for name, t in cols if t == SqlTypes.Date]
-        data = rc.export_records(date_cols)
-        for form, columns in redcap_all_columns.items():
-            all_col_names = [name for name, _ in columns]
-            col_names = [name for name, _ in redcap_columns[form]]
-            form_data = data.loc[:, all_col_names].dropna(how='all', subset=col_names)
-            if 'redcap_repeat_instance' in form_data.columns:
-                form_data.loc[:, 'redcap_repeat_instance'].fillna(0, inplace=True)
-            form_data = form_data.replace({pd.NA: None})
+            # Build tables
+            date_cols = [name for cols in redcap_columns.values() for name, t in cols if t == SqlTypes.Date]
+            data = rc.export_records(date_cols)
+            for form, columns in redcap_all_columns.items():
+                all_col_names = [name for name, _ in columns]
+                col_names = [name for name, _ in redcap_columns[form]]
+                form_data = data.loc[:, all_col_names].dropna(how='all', subset=col_names)
+                if 'redcap_repeat_instance' in form_data.columns:
+                    form_data.loc[:, 'redcap_repeat_instance'].fillna(0, inplace=True)
+                form_data = form_data.replace({pd.NA: None})
 
-            records = form_data.values.tolist()
+                records = form_data.values.tolist()
 
-            metric_column_names = f', '.join(all_col_names)
-            insert_placeholder = f"({f', '.join(['?' for _ in all_col_names])})"
-            pretty_name = cfg.REDCAP_NAMES_AND_INDEX_COLS[form][0]
-            insert_stmt = f'INSERT OR REPLACE INTO "{pretty_name}" ({metric_column_names}) VALUES {insert_placeholder}'
-            out_conn.executemany(insert_stmt, records)
-        out_conn.commit()
-        end = timer()
-        print(f'Done with redcap import, elapsed: {end - start}s')
+                metric_column_names = f', '.join(all_col_names)
+                insert_placeholder = f"({f', '.join(['?' for _ in all_col_names])})"
+                pretty_name = cfg.REDCAP_NAMES_AND_INDEX_COLS[form][0]
+                insert_stmt = f'INSERT OR REPLACE INTO "{pretty_name}" ({metric_column_names}) VALUES {insert_placeholder}'
+                out_conn.executemany(insert_stmt, records)
+            out_conn.commit()
+            end = timer()
+            print(f'Done with redcap import, elapsed: {end - start}s')
+        import_from_redcap_if_e()
 
     # Create result tables which store result results for each session/hand combination for a particular assessment
     metric_col_names_for_mode = {}
-    create_combined_session_result_stmt = ''
-    for mode, evaluator in metric_evaluator_for_mode.items():
-        name_types = evaluator.get_result_column_names_and_types()
-        metric_col_names_for_mode[mode] = [name for name, _ in name_types]
-        result_cols = f',\n'.join([f'"{name}" {type_name}' for name, type_name in name_types])
-        create_result_table_query = f'''
-            CREATE TABLE "{Tables.Results[mode]}" (
-                "Id" integer primary key not null,
-                "SessionId" integer not null,
-                "IthSession" integer not null,
-                "LeftHand" integer not null,
-                "AssessmentId" integer,
-                {result_cols},
-                UNIQUE("SessionId", "LeftHand")
-            )'''
-        migrator.create_or_replace_table_index_or_view_from_stmt(Tables.Results[mode], create_result_table_query)
-        migrator.create_or_replace_table_index_or_view_from_stmt(f'{Tables.Results[mode]}_IthSession',
-                                                                 f'CREATE INDEX {Tables.Results[mode]}_IthSession '
-                                                                 f'ON {Tables.Results[mode]} (IthSession)')
 
-        create_result_table_view_stmt = f'''
-            CREATE VIEW "{Tables.Results[mode]}Full" AS
-                SELECT P.PatientId, R.LeftHand, R.IthSession, MIN(S.SessionStartTime) AS FirstSessionStartTime, {f", ".join(metric_col_names_for_mode[mode])}
-                FROM {Tables.Results[mode]} AS R
-                JOIN Session AS S USING(SessionId)
-                JOIN Patient AS P USING(PatientId)
-                GROUP BY P.PatientId, R.LeftHand, R.IthSession
-                ORDER BY P.PatientId, R.LeftHand, R.IthSession'''
-        migrator.create_or_replace_table_index_or_view_from_stmt(f'{Tables.Results[mode]}Full', create_result_table_view_stmt)
-        create_combined_session_result_stmt += f'LEFT JOIN {Tables.Results[mode]}Full USING(PatientId, LeftHand, IthSession)\n'
+    def create_result_tables():
+        combined_session_result_stmt_joins = ''
+        for mode, evaluator in metric_evaluator_for_mode.items():
+            if mode.name not in cfg.IMPORT_ASSESSMENTS:
+                continue
+
+            name_types = evaluator.get_result_column_names_and_types()
+            metric_col_names_for_mode[mode] = [name for name, _ in name_types]
+            result_cols = f',\n'.join([f'"{name}" {type_name}' for name, type_name in name_types])
+            create_result_table_query = f'''
+                CREATE TABLE "{Tables.Results[mode]}" (
+                    "Id" integer primary key not null,
+                    "SessionId" integer not null,
+                    "IthSession" integer not null,
+                    "LeftHand" integer not null,
+                    "AssessmentId" integer,
+                    {result_cols},
+                    UNIQUE("SessionId", "LeftHand")
+                )'''
+            migrator.create_or_replace_table_index_or_view_from_stmt(Tables.Results[mode], create_result_table_query)
+            migrator.create_or_replace_table_index_or_view_from_stmt(f'{Tables.Results[mode]}_IthSession',
+                                                                     f'CREATE INDEX {Tables.Results[mode]}_IthSession '
+                                                                     f'ON {Tables.Results[mode]} (IthSession)')
+
+            create_result_table_view_stmt = f'''
+                CREATE VIEW "{Tables.Results[mode]}Full" AS
+                    SELECT P.PatientId, R.LeftHand, R.IthSession, MIN(S.SessionStartTime) AS FirstSessionStartTime, {f", ".join(metric_col_names_for_mode[mode])}
+                    FROM {Tables.Results[mode]} AS R
+                    JOIN Session AS S USING(SessionId)
+                    JOIN Patient AS P USING(PatientId)
+                    GROUP BY P.PatientId, R.LeftHand, R.IthSession
+                    ORDER BY P.PatientId, R.LeftHand, R.IthSession'''
+            migrator.create_or_replace_table_index_or_view_from_stmt(f'{Tables.Results[mode]}Full', create_result_table_view_stmt)
+            combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]}Full USING(PatientId, LeftHand, IthSession)\n'
+        return combined_session_result_stmt_joins
+    combined_session_result_stmt_joins = create_result_tables()
 
     # Create combined result view which contains all patient metadata and session results
-    all_metric_col_names = [name for metric_col_names in metric_col_names_for_mode.values() for name in metric_col_names]
-    metric_names = f', '.join(all_metric_col_names)
-    null_checks = f' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
-    patient_columns = get_all_columns_except(out_conn, Tables.Patient, ('SubjectNr', 'PatientId'))
-    create_combined_session_result_stmt = f'''
-            CREATE VIEW SessionResult AS
-                SELECT P.SubjectNr, P.PatientId, LeftHand, IthSession,
-                    {f", ".join([f"P.{patient_column}" for patient_column in patient_columns])}, 
-                    {metric_names}
-                FROM Patient AS P
-                JOIN (SELECT 0 AS LeftHand UNION ALL SELECT 1)
-                JOIN (SELECT 1 AS IthSession {f" ".join([f"UNION ALL SELECT {i}" for i in range(2, 11)])})
-                {create_combined_session_result_stmt}
-                WHERE {null_checks}
-                ORDER BY P.SubjectNr, LeftHand, IthSession
-    '''
-    migrator.create_or_replace_table_index_or_view_from_stmt('SessionResult', create_combined_session_result_stmt)
+    def create_combined_result_view():
+        all_metric_col_names = [name for metric_col_names in metric_col_names_for_mode.values() for name in metric_col_names]
+        metric_names = f', '.join(all_metric_col_names)
+        null_checks = f' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
+        patient_columns = get_all_columns_except(out_conn, Tables.Patient, ('SubjectNr', 'PatientId'))
+        create_combined_session_result_stmt = f'''
+                CREATE VIEW SessionResult AS
+                    SELECT P.SubjectNr, P.PatientId, LeftHand, IthSession,
+                        {f", ".join([f"P.{patient_column}" for patient_column in patient_columns])},
+                        {metric_names}
+                    FROM Patient AS P
+                    JOIN (SELECT 0 AS LeftHand UNION ALL SELECT 1)
+                    JOIN (SELECT 1 AS IthSession {f" ".join([f"UNION ALL SELECT {i}" for i in range(2, 11)])})
+                    {combined_session_result_stmt_joins}
+                    WHERE {null_checks}
+                    ORDER BY P.SubjectNr, LeftHand, IthSession
+        '''
+        migrator.create_or_replace_table_index_or_view_from_stmt('SessionResult', create_combined_session_result_stmt)
+    create_combined_result_view()
 
     # Retrieve all completed assessments which are currently marked as a result of a session
     in_conn.row_factory = sqlite3.Row
-    data = in_conn.execute(f'''
+    data_query = f'''
         SELECT S.*, P.SubjectNr, A.AssessmentId, A.TaskType, A.LeftHand, strftime('%Y%m%d_%H%M%S', A.StartTime) AS FmtStartTime 
         FROM {Tables.Session} AS S
         JOIN {Tables.Patient} AS P USING(PatientId)
         JOIN {Tables.Assessment} AS A USING(SessionId)
-        WHERE State == {AssessmentState.Finished} AND IsTrialRun IS NOT TRUE
+        WHERE State == {AssessmentState.Finished} AND IsTrialRun IS NOT TRUE AND A.TaskType IN ({f", ".join([str(Modes[mode].value) for mode in cfg.IMPORT_ASSESSMENTS])})
         ORDER BY AssessmentId ASC
-    ''').fetchall()
+    '''
+    data = in_conn.execute(data_query).fetchall()
 
     # Retrieve tdms file paths, check for existence and retrieve required result data from input database
     assessments_for_userhandmode: Dict[Tuple[str, bool, int], List[int]] = {}
@@ -291,7 +306,7 @@ if __name__ == '__main__':
         db_path = sys.argv[1]
     elif cfg.DB_PATH:
         db_path = cfg.DB_PATH
-    elif cfg.USE_DB_FROM_UPLOAD_DIR:
+    elif cfg.USE_DB_FROM_UPLOAD_DIR and os.path.exists(cfg.PATH_TO_POLYBOX_UPLOAD_DIR):
         db_paths = os.listdir(os.path.join(cfg.PATH_TO_POLYBOX_UPLOAD_DIR, 'Database Backups'))
         if db_paths:
             db_path = os.path.join(cfg.PATH_TO_POLYBOX_UPLOAD_DIR, 'Database Backups', max(db_paths))

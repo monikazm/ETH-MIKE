@@ -1,6 +1,8 @@
 import os
 import importlib.util
 
+from mike_analysis.core.meta import Modes
+
 _TEMPLATE = r'''
 ENABLE_MULTICORE = True
 
@@ -20,6 +22,8 @@ PATH_TO_DATA_ROOT_DIR = r'C:\Users\SomeUser\Desktop\StudyName'
 # c) The file db.db in the current directory
 DB_PATH = r''
 USE_DB_FROM_UPLOAD_DIR = True
+
+IMPORT_ASSESSMENTS = {''' + f', '.join([f"'{mode.name}'" for mode in Modes]) + '''}
 
 # If True, this script will download all data from redcap whenever it is run
 REDCAP_IMPORT = False
