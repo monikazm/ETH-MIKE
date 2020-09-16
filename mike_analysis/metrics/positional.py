@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from math import sqrt
 
 import numpy as np
 import pandas as pd
@@ -54,15 +53,6 @@ class AbsPositionErrorAtSteadyState(TrialMetric):
                     time_ss = trial_data[TimeCol].iloc[-1]
             data_at_ss = trial_data[trial_data[TimeCol] == time_ss]
             return (data_at_ss[TPosCol] - data_at_ss[PosCol]).abs().iloc[0]
-
-
-@dataclass
-class RMSError(TrialMetric):
-    name = 'RMSE'
-
-    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
-        pos_delta = trial_data[TPosCol] - trial_data[PosCol]
-        return sqrt((pos_delta * pos_delta).mean())
 
 
 @dataclass

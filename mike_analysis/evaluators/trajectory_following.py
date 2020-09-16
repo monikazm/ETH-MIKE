@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
 from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
-from mike_analysis.metrics.motor import MAPR, VelocitySD
-from mike_analysis.metrics.positional import RMSError, MinRom, Rom
+from mike_analysis.metrics.motor import MAPR, VelocitySD, NIJ
+from mike_analysis.metrics.positional import MinRom, Rom
+from mike_analysis.metrics.sensorimotor import RMSError
 
 
 # TODO (other metrics)
@@ -15,6 +16,7 @@ class _TrajectoryFollowingSeriesEvaluator(MetricEvaluator):
         MAPR(),
         MinRom(),
         Rom(),
+        NIJ(),
         VelocitySD(),
     )
 

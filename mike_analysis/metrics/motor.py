@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 
-from mike_analysis.column_computers.derivatives import DefaultAbsVelocityComputer
-from mike_analysis.core.meta import VelCol, ForceCol, PosCol, SPosCol
+from mike_analysis.column_computers.derivatives import DefaultAbsVelocityComputer, DefaultJerkComputer
+from mike_analysis.core.meta import VelCol, ForceCol, PosCol, SPosCol, TimeCol, JerkCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 
 
@@ -54,3 +55,38 @@ class MaxForce(TrialMetric):
 
     def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
         return trial_data[ForceCol].abs().max()
+
+
+class NIJ(TrialMetric):
+    name = 'NIJ'
+    required_column_computers = (DefaultAbsVelocityComputer, DefaultJerkComputer, )
+
+    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+        if (trial_data[VelCol] < 0.05).sum() > len(trial_data) * 0.9:
+            # Non moving patient
+            return np.inf
+
+        # Normalized jerk
+        # \sqrt{\frac{1}{2} \cdot \frac{MD^5}{L^2} \cdot \int_{t_{start}}^{t_{end}}{jerk^2(t) dt}}
+        # Where MD = movement duration, L = movement length, jerk = third derivative of position
+        # Ref: "Impact of Time on Quality of Motor Control of the Paretic Upper Limb After Stroke" (Kordelaar, Wegen, Kwakkel, 2014)
+
+        md = trial_data[TimeCol].iloc[-1]
+        md_2 = md * md
+        md_5 = md_2 * md_2 * md
+
+        l = trial_data[PosCol].diff().abs().sum()
+        l_2 = l * l
+
+        jerk = trial_data[JerkCol]
+        jerk_2 = jerk * jerk
+
+        nij = np.sqrt((0.5 * md_5 / l_2) * np.trapz(jerk_2, trial_data[TimeCol]))
+        return nij
+
+
+class R2(TrialMetric):
+    name = 'R2'
+
+    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+        pass
