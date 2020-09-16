@@ -13,6 +13,7 @@ TPosCol = 'TargetPos'
 ForceCol = 'Force'
 VelCol = 'Velocity'
 DfDtCol = 'dFdT'
+JerkCol = 'Jerk'
 VelSensorCol = 'VelocityMeasured'
 
 col_names = [TimeCol, TrialCol, TSCol, RStateCol, PosCol, SPosCol, TPosCol, ForceCol]#, VelSensorCol]

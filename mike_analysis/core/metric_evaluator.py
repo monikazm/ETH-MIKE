@@ -32,7 +32,8 @@ class MetricEvaluator(metaclass=ABCMeta):
         for computer in self.series_metric_computers:
             column_computers.update(computer.get_required_column_computers())
         for metric in self.trial_metrics + self.diff_metrics + self.summary_metrics + self.aggregator_metrics:
-            column_computers.update((computer, None) for computer in metric.required_column_computers)
+            for col_computer in metric.required_column_computers:
+                col_computer.add_computer_to(column_computers)
         return column_computers
 
     def get_result_column_names_and_types(self) -> List[Tuple[str, str]]:

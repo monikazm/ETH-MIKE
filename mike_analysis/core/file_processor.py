@@ -13,9 +13,12 @@ def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_f
     tdms_data = tdms_data.rename(columns={tdms_c: c for (tdms_c, c) in zip(tdms_cols, col_names)})
     tdms_trials = preprocess_and_split_trials(tdms_data, left_hand)
     evaluator = metric_evaluator_for_mode[Modes(task_type)]
-    for computer in evaluator.get_required_column_computers():
+    col_computers = evaluator.get_required_column_computers()
+    if col_computers:
         for trial_data in tdms_trials:
-            computer.add_column_to(trial_data)
+            period = trial_data[TimeCol].diff().mean()
+            for computer in col_computers:
+                computer.add_column_to(trial_data, period)
     return evaluator.compute_assessment_metrics(tdms_trials, trial_results_from_db)
 
 
