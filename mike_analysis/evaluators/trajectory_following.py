@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 
 from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
-from mike_analysis.metrics.motor import MAPR, VelocitySD, NIJ
+from mike_analysis.metrics.motor import MAPR, VelocitySD, NIJ, R2
 from mike_analysis.metrics.positional import MinRom, Rom
-from mike_analysis.metrics.sensorimotor import RMSError
+from mike_analysis.metrics.sensorimotor import RMSError, StdPeakAmplitude
 
 
 # TODO (other metrics)
-# mean_abs_shift, mean_abs_peakdiff, std_peak_amplitude, NIJ, R^2
+# mean_abs_shift, mean_abs_peakdiff, R^2
 
 @dataclass
 class _TrajectoryFollowingSeriesEvaluator(MetricEvaluator):
@@ -16,7 +16,9 @@ class _TrajectoryFollowingSeriesEvaluator(MetricEvaluator):
         MAPR(),
         MinRom(),
         Rom(),
+        StdPeakAmplitude(),
         NIJ(),
+        #R2(),
         VelocitySD(),
     )
 
