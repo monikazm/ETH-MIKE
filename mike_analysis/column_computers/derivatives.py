@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import butter, filtfilt
 
-from mike_analysis.core.meta import TimeCol, ForceCol, VelCol, PosCol, DfDtCol, JerkCol
+from mike_analysis.core.meta import TimeCol, ForceCol, AbsVelCol, PosCol, DfDtCol, JerkCol
 from mike_analysis.core.computed_columns import ColumnComputer
 
 
@@ -24,10 +24,10 @@ class VelocityComputer(ColumnComputer):
     def _compute_column(self, data: pd.DataFrame, data_period: float) -> np.array:
         fc = 20.0
         [b, a] = butter(2, 2.0 * fc * data_period)
-        data[VelCol] = filtfilt(b, a, data[PosCol])
-        dp_dt = np.abs(np.gradient(data[VelCol], data[TimeCol]))
+        pos_flt = filtfilt(b, a, data[PosCol])
+        dp_dt = np.abs(np.gradient(pos_flt, data[TimeCol]))
         return filtfilt(b, a, dp_dt)
-DefaultAbsVelocityComputer = VelocityComputer(VelCol)
+DefaultAbsVelocityComputer = VelocityComputer(AbsVelCol)
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ class JerkComputer(ColumnComputer):
         [b, a] = butter(4, 2.0 * fc * data_period)
 
         # Compute acceleration
-        accel = np.gradient(data[VelCol], data[TimeCol])
+        accel = np.gradient(data[AbsVelCol], data[TimeCol])
         accel_flt = filtfilt(b, a, accel)
 
         # Compute jerk

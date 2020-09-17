@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from mike_analysis.core.meta import TPosCol, PosCol, VelCol, TimeCol
+from mike_analysis.core.meta import TPosCol, PosCol, AbsVelCol, TimeCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 
 
@@ -31,7 +31,7 @@ class AbsPositionErrorAtSteadyState(TrialMetric):
 
     @staticmethod
     def get_indices_where_abs_vel_above_threshold_after_peak_vel_reached(trial_data: pd.DataFrame):
-        abs_vel = trial_data[VelCol].abs()
+        abs_vel = trial_data[AbsVelCol].abs()
         max_v_ind = abs_vel.argmax()
         abs_vel = abs_vel.iloc[max_v_ind+1:]
         return np.where(abs_vel >= 10.0)[0] + max_v_ind + 1
