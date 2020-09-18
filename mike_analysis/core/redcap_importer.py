@@ -62,12 +62,12 @@ class RedcapImporter:
                 key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ]
 
             form_columns[form] = self.ColumnCollection(key, redcap_columns[form])
-            self._create_redcap_table(form_columns[form], [name for name, _ in key], *cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
+            self._create_redcap_table(form_columns[form].key_cols + form_columns[form].data_cols, [name for name, _ in key], *cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
         return form_columns
 
     def _import_data_from_redcap(self, form_columns: Dict[str, ColumnCollection]):
         # Build tables
-        date_cols = [name for cols in form_columns.values() for name, t in cols if t == SqlTypes.Date]
+        date_cols = [name for cols in form_columns.values() for name, t in cols.data_cols if t == SqlTypes.Date]
         data = self.rc.export_records(date_cols)
         for form, columns in form_columns.items():
             data_col_names = [name for name, _ in columns.data_cols]
