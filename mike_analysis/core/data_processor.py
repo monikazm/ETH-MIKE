@@ -36,50 +36,54 @@ class DataProcessor:
                 continue
 
             create_result_table_query = f'''
-                        CREATE TABLE "{Tables.Results[mode]}" (
-                            "Id" integer primary key not null,
-                            "SessionId" integer not null,
-                            "IthSession" integer not null,
-                            "LeftHand" integer not null,
-                            "AssessmentId" integer,
-                            {self.result_cols[mode]},
-                            UNIQUE("SessionId", "LeftHand")
-                        )'''
+                CREATE TABLE "{Tables.Results[mode]}" (
+                    "Id" integer primary key not null,
+                    "SessionId" integer not null,
+                    "IthSession" integer not null,
+                    "LeftHand" integer not null,
+                    "AssessmentId" integer,
+                    {self.result_cols[mode]},
+                    UNIQUE("SessionId", "LeftHand")
+                )
+            '''
             self.migrator.create_or_replace_table_index_or_view_from_stmt(Tables.Results[mode], create_result_table_query)
             self.migrator.create_or_replace_table_index_or_view_from_stmt(f'{Tables.Results[mode]}_IthSession',
                                                                           f'CREATE INDEX {Tables.Results[mode]}_IthSession '
                                                                           f'ON {Tables.Results[mode]} (IthSession)')
 
             create_result_table_view_stmt = f'''
-                        CREATE VIEW "{Tables.Results[mode]}Full" AS
-                            SELECT P.PatientId, R.LeftHand, R.IthSession, MIN(S.SessionStartTime) AS FirstSessionStartTime, {f", ".join(self.metric_col_names_for_mode[mode])}
-                            FROM {Tables.Results[mode]} AS R
-                            JOIN Session AS S USING(SessionId)
-                            JOIN Patient AS P USING(PatientId)
-                            GROUP BY P.PatientId, R.LeftHand, R.IthSession
-                            ORDER BY P.PatientId, R.LeftHand, R.IthSession'''
+                CREATE VIEW "{Tables.Results[mode]}Full" AS
+                    SELECT P.PatientId, R.LeftHand, R.IthSession, MIN(S.SessionStartTime) AS FirstSessionStartTime, {f", ".join(self.metric_col_names_for_mode[mode])}
+                    FROM {Tables.Results[mode]} AS R
+                    JOIN Session AS S USING(SessionId)
+                    JOIN Patient AS P USING(PatientId)
+                    GROUP BY P.PatientId, R.LeftHand, R.IthSession
+                    ORDER BY P.PatientId, R.LeftHand, R.IthSession
+            '''
             self.migrator.create_or_replace_table_index_or_view_from_stmt(f'{Tables.Results[mode]}Full', create_result_table_view_stmt)
             combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]}Full USING(PatientId, LeftHand, IthSession)\n'
         return combined_session_result_stmt_joins
 
-    def create_result_view(self, combined_session_result_stmt_joins: str):
+    def create_result_views(self, combined_session_result_stmt_joins: str):
         all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values() for name in metric_col_names]
         metric_names = f', '.join(all_metric_col_names)
         null_checks = f' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
-        patient_columns = self._get_all_columns_except(self.out_conn, Tables.Patient, ('SubjectNr', 'PatientId'))
+        patient_columns = self.migrator.out_get_all_columns_except(Tables.Patient, ('SubjectNr', 'PatientId'))
+
+        session_result_view_name = 'SessionResult'
         create_combined_session_result_stmt = f'''
-                        CREATE VIEW SessionResult AS
-                            SELECT P.SubjectNr, P.PatientId, LeftHand, IthSession,
-                                {f", ".join([f"P.{patient_column}" for patient_column in patient_columns])},
-                                {metric_names}
-                            FROM Patient AS P
-                            JOIN (SELECT 0 AS LeftHand UNION ALL SELECT 1)
-                            JOIN (SELECT 1 AS IthSession {f" ".join([f"UNION ALL SELECT {i}" for i in range(2, 11)])})
-                            {combined_session_result_stmt_joins}
-                            WHERE {null_checks}
-                            ORDER BY P.SubjectNr, LeftHand, IthSession
-                '''
-        self.migrator.create_or_replace_table_index_or_view_from_stmt('SessionResult', create_combined_session_result_stmt)
+            CREATE VIEW {session_result_view_name} AS
+                SELECT P.SubjectNr, P.PatientId, LeftHand, IthSession,
+                    {f", ".join([f"P.{patient_column}" for patient_column in patient_columns])},
+                    {metric_names}
+                FROM Patient AS P
+                JOIN (SELECT 0 AS LeftHand UNION ALL SELECT 1)
+                JOIN (SELECT 1 AS IthSession {f" ".join([f"UNION ALL SELECT {i}" for i in range(2, 11)])})
+                {combined_session_result_stmt_joins}
+                WHERE {null_checks}
+                ORDER BY P.SubjectNr, LeftHand, IthSession
+        '''
+        self.migrator.create_or_replace_table_index_or_view_from_stmt(session_result_view_name, create_combined_session_result_stmt)
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
         # Retrieve all completed assessments which are currently marked as a result of a session
@@ -193,10 +197,6 @@ class DataProcessor:
         entry.update(assessment_results)
 
         return entry
-
-    @staticmethod
-    def _get_all_columns_except(conn, table, ignore_list):
-        return [elem[1] for elem in conn.execute(f'PRAGMA table_info({table});').fetchall() if elem[1] not in ignore_list]
 
     @staticmethod
     def _dict_factory(cursor, row):

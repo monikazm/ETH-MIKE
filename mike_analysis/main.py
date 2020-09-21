@@ -41,7 +41,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
     processor = DataProcessor(in_conn, out_conn, migrator)
     with time_measured('result table creation'):
         combined_session_result_stmt_joins = processor.create_result_tables()
-        processor.create_result_view(combined_session_result_stmt_joins)
+        processor.create_result_views(combined_session_result_stmt_joins)
     processor.compute_and_store_metrics(data_dir, polybox_upload_dir)
 
 
