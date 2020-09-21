@@ -5,7 +5,7 @@ from typing import List, Union, Tuple, Dict, ClassVar
 
 import pandas as pd
 
-from mike_analysis.core.computed_columns import ColumnComputer
+from mike_analysis.core.precomputer import ColumnPrecomputer, PrecomputeDict
 
 Scalar = Union[bool, int, float]
 MetricTrialValues = Tuple[str, List[Scalar]]
@@ -21,7 +21,7 @@ class Metric(metaclass=ABCMeta):
     """Base class for all metrics"""
     name: ClassVar[str]
     d_type: ClassVar[str]
-    required_column_computers: ClassVar[Tuple[ColumnComputer, ...]] = ()
+    requires: ClassVar[Tuple[ColumnPrecomputer, ...]] = ()
 
 
 @dataclass
@@ -44,11 +44,12 @@ class TrialMetric(Metric, metaclass=ABCMeta):
     """Metric for a single trial"""
     d_type: ClassVar[str] = DTypes.DOUBLE
 
-    def compute(self, all_trials: List[pd.DataFrame], db_trial_results: List[RowType]) -> MetricTrialValues:
-        return self.name, [self.compute_single_trial(trial_data, db_trial_result) for trial_data, db_trial_result in zip(all_trials, db_trial_results)]
+    def compute(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_trial_results: List[RowType]) -> MetricTrialValues:
+        return self.name, [self.compute_single_trial(trial_data, precomputed_data, db_trial_result)
+                           for trial_data, precomputed_data, db_trial_result in zip(all_trials, precomputed_vals, db_trial_results)]
 
     @abstractmethod
-    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         pass
 
 
@@ -67,9 +68,9 @@ class DiffMetric(Metric):
 @dataclass
 class SummaryMetric(Metric, metaclass=ABCMeta):
     """Metric based on all trials (in contrast to AggregateMetric, this is not automatically applied to all TrialMetrics)"""
-    def compute(self, all_trials: List[pd.DataFrame], db_trial_results: List[RowType]) -> Tuple[str, Scalar]:
-        return self.name, self.compute_metric_value(all_trials, db_trial_results)
+    def compute(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_trial_results: List[RowType]) -> Tuple[str, Scalar]:
+        return self.name, self.compute_metric_value(all_trials, precomputed_vals, db_trial_results)
 
     @abstractmethod
-    def compute_metric_value(self, all_trials: List[pd.DataFrame], db_trial_results: List[RowType]) -> Scalar:
+    def compute_metric_value(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowType]) -> Scalar:
         pass

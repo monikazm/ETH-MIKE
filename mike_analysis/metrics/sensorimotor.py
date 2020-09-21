@@ -7,13 +7,14 @@ import scipy.signal as sig
 
 from mike_analysis.core.meta import PosCol, TPosCol, TimeCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
+from mike_analysis.core.precomputer import PrecomputeDict
 
 
 @dataclass
 class RMSError(TrialMetric):
     name = 'RMSE'
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         pos_delta = trial_data[TPosCol] - trial_data[PosCol]
         return sqrt((pos_delta * pos_delta).mean())
 
@@ -21,14 +22,14 @@ class RMSError(TrialMetric):
 class MeanAbsShift(TrialMetric):
     name = 'MeanAbsShift'
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         pass
 
 
 class MeanAbsPeakdiff(TrialMetric):
     name = 'MeanAbsPeakdiff'
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         min_peak_dist = 5.3 / trial_data[TimeCol].diff().mean()
         target_peak_indices, _ = sig.find_peaks(trial_data[TPosCol], distance=min_peak_dist)
         actual_peak_indices, _ = sig.find_peaks(trial_data[PosCol], distance=min_peak_dist)
@@ -51,7 +52,7 @@ class MeanAbsPeakdiff(TrialMetric):
 class StdPeakAmplitude(TrialMetric):
     name = 'StdPeakAmplitude'
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         min_peak_dist = 5.3 / trial_data[TimeCol].diff().mean()
         peaks, _ = sig.find_peaks(trial_data[PosCol], distance=min_peak_dist)
         std_peak_amplitude = trial_data[PosCol].iloc[peaks].std()

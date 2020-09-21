@@ -13,13 +13,13 @@ def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_f
     tdms_data = tdms_data.rename(columns={tdms_c: c for (tdms_c, c) in zip(tdms_cols, col_names)})
     tdms_trials = preprocess_and_split_trials(tdms_data, left_hand)
     evaluator = metric_evaluator_for_mode[Modes(task_type)]
-    col_computers = evaluator.get_required_column_computers()
-    if col_computers:
-        for trial_data in tdms_trials:
-            period = trial_data[TimeCol].diff().mean()
-            for computer in col_computers:
-                computer.add_column_to(trial_data, period)
-    return evaluator.compute_assessment_metrics(tdms_trials, trial_results_from_db)
+    precomputed_dependencies = evaluator.get_precompute_dependencies()
+    precomputed_vals = [{} for _ in tdms_trials]
+    if precomputed_dependencies:
+        for trial_data, precomputed_vals_for_trial in zip(tdms_trials, precomputed_vals):
+            for dependency in precomputed_dependencies:
+                dependency.precompute_for(trial_data, precomputed_vals_for_trial)
+    return evaluator.compute_assessment_metrics(tdms_trials, precomputed_vals, trial_results_from_db)
 
 
 def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool) -> List[pd.DataFrame]:

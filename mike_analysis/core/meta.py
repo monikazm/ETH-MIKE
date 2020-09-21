@@ -11,9 +11,6 @@ PosCol = 'Pos'
 SPosCol = 'StartingPos'
 TPosCol = 'TargetPos'
 ForceCol = 'Force'
-AbsVelCol = 'Velocity'
-DfDtCol = 'dFdT'
-JerkCol = 'Jerk'
 VelSensorCol = 'VelocityMeasured'
 
 col_names = [TimeCol, TrialCol, TSCol, RStateCol, PosCol, SPosCol, TPosCol, ForceCol]#, VelSensorCol]

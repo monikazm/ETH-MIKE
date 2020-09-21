@@ -5,8 +5,8 @@ from typing import List, Dict, Union, Tuple, ClassVar, OrderedDict
 
 import pandas as pd
 
-from mike_analysis.core.computed_columns import ColumnComputer
 from mike_analysis.core.metric import AggregateMetric, DiffMetric, SummaryMetric, TrialMetric
+from mike_analysis.core.precomputer import Precomputer, PrecomputeDict
 from mike_analysis.metrics.aggregate import StdDev, Mean
 
 Scalar = Union[bool, int, float]
@@ -27,14 +27,14 @@ class MetricEvaluator(metaclass=ABCMeta):
 
     series_metric_computers: ClassVar[Tuple['MetricEvaluator', ...]] = ()
 
-    def get_required_column_computers(self) -> OrderedDict[ColumnComputer, None]:
-        column_computers = collections.OrderedDict()
+    def get_precompute_dependencies(self) -> OrderedDict[Precomputer, None]:
+        precompute_dependencies = collections.OrderedDict()
         for computer in self.series_metric_computers:
-            column_computers.update(computer.get_required_column_computers())
+            precompute_dependencies.update(computer.get_precompute_dependencies())
         for metric in self.trial_metrics + self.diff_metrics + self.summary_metrics + self.aggregator_metrics:
-            for col_computer in metric.required_column_computers:
-                col_computer.add_computer_to(column_computers)
-        return column_computers
+            for dependency in metric.requires:
+                dependency.add_to(precompute_dependencies)
+        return precompute_dependencies
 
     def get_result_column_names_and_types(self) -> List[Tuple[str, str]]:
         col_name_and_types = []
@@ -48,24 +48,25 @@ class MetricEvaluator(metaclass=ABCMeta):
     def get_result_column_names(self) -> List[str]:
         return next(zip(*self.get_result_column_names_and_types()))
 
-    def compute_trial_metrics(self, all_trials: List[pd.DataFrame], db_results: List[RowType]) -> AllMetricsTrialValues:
-        return [metric.compute(all_trials, db_results) for metric in self.trial_metrics]
+    def compute_trial_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowType]) -> AllMetricsTrialValues:
+        return [metric.compute(all_trials, precomputed_vals, db_results) for metric in self.trial_metrics]
 
-    def compute_assessment_metrics(self, all_trials: List[pd.DataFrame], db_results: List[RowType]) -> Dict[str, Scalar]:
+    def compute_assessment_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowType]) -> Dict[str, Scalar]:
         result_dict = {}
 
         # Split trials into series (if any) and compute individual series results
-        series_trials = [([], []) for _ in self.series_metric_computers]
+        series_trials = [([], [], []) for _ in self.series_metric_computers]
         if series_trials:
-            for raw_trial_data, db_trial_result in zip(all_trials, db_results):
-                series_raw_trials, series_db_results = series_trials[self.get_series_idx(db_trial_result)]
+            for raw_trial_data, precomputed, db_trial_result in zip(all_trials, precomputed_vals, db_results):
+                series_raw_trials, series_precomputed, series_db_results = series_trials[self.get_series_idx(db_trial_result)]
                 series_raw_trials.append(raw_trial_data)
+                series_precomputed.append(precomputed)
                 series_db_results.append(db_trial_result)
-            for series_computer, (series_raw_trials, series_db_results) in zip(self.series_metric_computers, series_trials):
-                result_dict.update(series_computer.compute_assessment_metrics(series_raw_trials, series_db_results))
+            for series_computer, (series_raw_trials, series_precomputed, series_db_results) in zip(self.series_metric_computers, series_trials):
+                result_dict.update(series_computer.compute_assessment_metrics(series_raw_trials, series_precomputed, series_db_results))
 
         # Compute trial metrics
-        data = pd.DataFrame.from_dict(dict(self.compute_trial_metrics(all_trials, db_results)))
+        data = pd.DataFrame.from_dict(dict(self.compute_trial_metrics(all_trials, precomputed_vals, db_results)))
 
         # Compute aggregate metrics
         for aggregator_metric in self.aggregator_metrics:
@@ -73,7 +74,7 @@ class MetricEvaluator(metaclass=ABCMeta):
 
         # Compute summary metric
         for metric in self.summary_metrics:
-            name, value = metric.compute(all_trials, db_results)
+            name, value = metric.compute(all_trials, precomputed_vals, db_results)
             result_dict[name] = value
 
         # Compute diff metrics
