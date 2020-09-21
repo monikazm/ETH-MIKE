@@ -84,6 +84,7 @@ class DataProcessor:
                 ORDER BY P.SubjectNr, LeftHand, IthSession
         '''
         self.migrator.create_or_replace_table_index_or_view_from_stmt(session_result_view_name, create_combined_session_result_stmt)
+        cfg.create_additional_views(self.migrator, metric_names)
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
         # Retrieve all completed assessments which are currently marked as a result of a session
