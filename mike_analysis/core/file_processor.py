@@ -3,8 +3,10 @@ from typing import List, Any
 
 import pandas as pd
 from nptdms import TdmsFile
+from scipy.signal import filtfilt
 
 from mike_analysis.core.meta import tdms_cols, col_names, Modes, TrialCol, RStateCol, TimeCol, ForceCol, PosCol, SPosCol, TPosCol, TSCol
+from mike_analysis.core.precomputer import Precomputer
 from mike_analysis.evaluators import *
 
 
@@ -45,4 +47,9 @@ def _preprocess_trial_data(data: pd.DataFrame, i: int, r: int) -> pd.DataFrame:
     start_time = trial_data[TimeCol].iloc[0]
     trial_data[TimeCol] -= start_time
     trial_data = trial_data.drop_duplicates(subset=[TimeCol])
+
+    # Filter position
+    b, a = Precomputer.get_default_filter(trial_data[TimeCol].diff().mean())
+    trial_data[PosCol] = filtfilt(b, a, trial_data[PosCol])
+
     return trial_data
