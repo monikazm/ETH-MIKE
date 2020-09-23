@@ -9,11 +9,14 @@ from mike_analysis.core.meta import PosCol, TPosCol, TimeCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 
+pos_unit = 'deg'
+
 
 @dataclass
 class RMSError(TrialMetric):
     name = 'RMSE'
     bigger_is_better = False
+    unit = pos_unit
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         pos_delta = trial_data[TPosCol] - trial_data[PosCol]
@@ -23,6 +26,7 @@ class RMSError(TrialMetric):
 class MeanAbsShift(TrialMetric):
     name = 'MeanAbsShift'
     bigger_is_better = False
+    unit = 's'
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         pass
@@ -31,6 +35,7 @@ class MeanAbsShift(TrialMetric):
 class MeanAbsPeakdiff(TrialMetric):
     name = 'MeanAbsPeakdiff'
     bigger_is_better = False
+    unit = pos_unit
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         min_peak_dist = 5.3 / trial_data[TimeCol].diff().mean()
@@ -55,6 +60,7 @@ class MeanAbsPeakdiff(TrialMetric):
 class StdPeakAmplitude(TrialMetric):
     name = 'StdPeakAmplitude'
     bigger_is_better = True
+    unit = pos_unit
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         min_peak_dist = 5.3 / trial_data[TimeCol].diff().mean()

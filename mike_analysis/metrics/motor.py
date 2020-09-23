@@ -4,16 +4,19 @@ import numpy as np
 import pandas as pd
 import scipy.optimize as opt
 
-from mike_analysis.core.meta import ForceCol, PosCol, SPosCol, TimeCol, time_measured
+from mike_analysis.core.meta import ForceCol, PosCol, SPosCol, TimeCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 from mike_analysis.precomputers.derivatives import AbsVelocity, Jerk
+
+speed_unit = 'deg/s'
 
 
 @dataclass
 class MaxVelocity(TrialMetric):
     name = 'MaxVelocity'
     bigger_is_better = True
+    unit = speed_unit
     requires = (AbsVelocity,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -24,6 +27,7 @@ class MaxVelocity(TrialMetric):
 class MaxNormalizedVelocity(TrialMetric):
     name = 'MaxVelocityNormalized'
     bigger_is_better = True
+    unit = '1/s'
     requires = (AbsVelocity,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -37,6 +41,7 @@ class MaxNormalizedVelocity(TrialMetric):
 class MAPR(TrialMetric):
     name = 'MAPR'
     bigger_is_better = False
+    unit = ''
     requires = (AbsVelocity,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -50,6 +55,7 @@ class MAPR(TrialMetric):
 class VelocitySD(TrialMetric):
     name = 'VelocitySD'
     bigger_is_better = False
+    unit = speed_unit
     requires = (AbsVelocity,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -60,6 +66,7 @@ class VelocitySD(TrialMetric):
 class MaxForce(TrialMetric):
     name = 'MaxForce'
     bigger_is_better = True
+    unit = 'N'
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return trial_data[ForceCol].abs().max()
@@ -68,6 +75,7 @@ class MaxForce(TrialMetric):
 class NIJ(TrialMetric):
     name = 'NIJ'
     bigger_is_better = False
+    unit = ''
     requires = (AbsVelocity, Jerk,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -97,6 +105,7 @@ class NIJ(TrialMetric):
 class R2(TrialMetric):
     name = 'R2'
     bigger_is_better = False
+    unit = ''
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         pass

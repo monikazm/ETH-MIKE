@@ -14,6 +14,7 @@ class DeltaRMSE(SummaryMetric):
     name = 'RMSE'
     d_type = DTypes.DOUBLE
     bigger_is_better = False
+    unit = 'deg'
 
     target_col: str
     actual_col: str
@@ -31,6 +32,7 @@ class NrOfTrialsWithoutReachingTarget(SummaryMetric):
     name = 'TrialsWhereTargetNotReachedPerc'
     d_type = DTypes.DOUBLE
     bigger_is_better = False
+    unit = ''
 
     def compute_metric_value(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowType]) -> Scalar:
         total_trial_count = len(all_trials)

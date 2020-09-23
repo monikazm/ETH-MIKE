@@ -33,6 +33,9 @@ class AggregateMetric(Metric, metaclass=ABCMeta):
     def bigger_is_better(self, single_metric: 'TrialMetric') -> bool:
         pass
 
+    def unit(self, single_metric: 'TrialMetric') -> str:
+        return single_metric.unit
+
     def compute_and_store_in_result_dict(self, result_dict: Dict[str, Scalar], all_metric_trial_values: pd.DataFrame):
         summary_values = self.compute_metric(all_metric_trial_values)
         for metric_name, value in summary_values.items():
@@ -48,6 +51,7 @@ class TrialMetric(Metric, metaclass=ABCMeta):
     """Metric for a single trial"""
     d_type: ClassVar[str] = DTypes.DOUBLE
     bigger_is_better: ClassVar[bool]
+    unit: ClassVar[str]
 
     def compute(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_trial_results: List[RowType]) -> MetricTrialValues:
         return self.name, [self.compute_single_trial(trial_data, precomputed_data, db_trial_result)
@@ -63,6 +67,7 @@ class DiffMetric(Metric):
     """Metric comparing two different aggregate values"""
     d_type: ClassVar[str] = DTypes.DOUBLE
     bigger_is_better: ClassVar[bool]
+    unit: ClassVar[str]
     src_metric1: str
     src_metric2: str
 
@@ -74,6 +79,7 @@ class DiffMetric(Metric):
 @dataclass
 class SummaryMetric(Metric, metaclass=ABCMeta):
     bigger_is_better: ClassVar[bool]
+    unit: ClassVar[str]
 
     """Metric based on all trials (in contrast to AggregateMetric, this is not automatically applied to all TrialMetrics)"""
     def compute(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_trial_results: List[RowType]) -> Tuple[str, Scalar]:

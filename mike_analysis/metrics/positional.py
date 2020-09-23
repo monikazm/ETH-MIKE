@@ -8,11 +8,14 @@ from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 from mike_analysis.precomputers.derivatives import AbsVelocity
 
+pos_unit = 'deg'
+
 
 @dataclass
 class PositionError(TrialMetric):
     name = 'PositionError'
     bigger_is_better = False
+    unit = pos_unit
     target_col: str
     actual_col: str
 
@@ -24,6 +27,7 @@ class PositionError(TrialMetric):
 class AbsPositionError(PositionError):
     name = 'AbsPositionError'
     bigger_is_better = False
+    unit = pos_unit
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return abs(super().compute_single_trial(trial_data, precomputed, db_trial_result))
@@ -33,6 +37,7 @@ class AbsPositionError(PositionError):
 class AbsPositionErrorAtSteadyState(TrialMetric):
     name = 'AbsPositionErrorAtSS'
     bigger_is_better = False
+    unit = pos_unit
     requires = (AbsVelocity, )
 
     @staticmethod
@@ -62,8 +67,9 @@ class AbsPositionErrorAtSteadyState(TrialMetric):
 
 @dataclass
 class MinRom(TrialMetric):
-    bigger_is_better = False
     name = 'MinROM'
+    bigger_is_better = False
+    unit = pos_unit
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return trial_data[PosCol].min()
@@ -73,6 +79,7 @@ class MinRom(TrialMetric):
 class MaxRom(TrialMetric):
     name = 'MaxROM'
     bigger_is_better = True
+    unit = pos_unit
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return trial_data[PosCol].max()
@@ -82,6 +89,7 @@ class MaxRom(TrialMetric):
 class Rom(TrialMetric):
     name = 'ROM'
     bigger_is_better = True
+    unit = pos_unit
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return abs(trial_data[PosCol].max() - trial_data[PosCol].min())

@@ -8,11 +8,14 @@ from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 from mike_analysis.precomputers.derivatives import ForceDerivative, AbsVelocity
 
+time_unit = 's'
+
 
 @dataclass
 class ForceReactionTime(TrialMetric):
     name = 'ForceRT'
     bigger_is_better = False
+    unit = time_unit
     requires = (ForceDerivative,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -24,6 +27,7 @@ class ForceReactionTime(TrialMetric):
 class MovementReactionTime(TrialMetric):
     name = 'MovementRT'
     bigger_is_better = False
+    unit = time_unit
     requires = (AbsVelocity,)
 
     @staticmethod

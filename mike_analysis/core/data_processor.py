@@ -26,9 +26,9 @@ class DataProcessor:
             if mode.name not in cfg.IMPORT_ASSESSMENTS:
                 continue
             name_and_info = evaluator.get_result_column_names_and_info()
-            self.metric_col_names_for_mode[mode] = [name for name, _, _ in name_and_info]
-            self.result_cols[mode] = f',\n'.join([f'"{name}" {type_name}' for name, type_name, _ in name_and_info])
-            metric_meta += [(name, mode, bigger_is_better) for name, _, bigger_is_better in name_and_info]
+            self.metric_col_names_for_mode[mode] = [name for name, _, _, _ in name_and_info]
+            self.result_cols[mode] = f',\n'.join([f'"{name}" {type_name}' for name, type_name, _, _ in name_and_info])
+            metric_meta += [(name, mode, bigger_is_better, unit) for name, _, bigger_is_better, unit in name_and_info]
 
         # Create metric meta table
         create_stmt = f'''
@@ -37,14 +37,15 @@ class DataProcessor:
                 "Name" varchar not null UNIQUE,
                 "TaskType" integer not null,
                 "BiggerIsBetter" integer not null,
+                "Unit" varchar not null,
                 "HealthyAvg" numeric
             )
         '''
         self.migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         # Insert metric metadata
-        self.out_conn.executemany('INSERT OR IGNORE INTO "MetricInfo" (Name, TaskType, BiggerIsBetter) '
-                                  'VALUES (?, ?, ?)', metric_meta)
+        self.out_conn.executemany('INSERT OR IGNORE INTO "MetricInfo" (Name, TaskType, BiggerIsBetter, Unit) '
+                                  'VALUES (?, ?, ?, ?)', metric_meta)
         self.out_conn.commit()
 
     def create_result_tables(self):
