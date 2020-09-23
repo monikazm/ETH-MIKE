@@ -39,7 +39,7 @@ def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool) -> List[pd.
     # Get data frames for individual trials with normalized time
     trials = data[TrialCol].unique()
     rom_states = data[RStateCol].unique()
-    return [_preprocess_trial_data(data, i, r) for i in trials for r in rom_states]
+    return [_preprocess_trial_data(data, i, r) for r in rom_states for i in trials]
 
 
 def _preprocess_trial_data(data: pd.DataFrame, i: int, r: int) -> pd.DataFrame:
