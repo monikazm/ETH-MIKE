@@ -30,10 +30,9 @@ class RedcapImporter:
                 PRIMARY KEY({unique_constr})
             )
         '''
-        self.migrator.create_or_replace_table_index_or_view_from_stmt(table_name, create_redcap_table_stmt)
+        self.migrator.create_or_update_table_index_or_view_from_stmt(create_redcap_table_stmt)
         for index in table_indices:
-            self.migrator.create_or_replace_table_index_or_view_from_stmt(f'{table_name}_{index}',
-                                                                          f'CREATE INDEX {table_name}_{index} ON {table_name} ({index})')
+            self.migrator.create_or_update_table_index_or_view_from_stmt(f'CREATE INDEX {table_name}_{index} ON {table_name} ({index})')
 
     def _create_tables_from_redcap_metadata(self) -> Dict[str, ColumnCollection]:
         # Request datadict over API

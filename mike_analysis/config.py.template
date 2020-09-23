@@ -53,7 +53,7 @@ def create_additional_views(migrator, metric_names):
                 LEFT JOIN Neurophysiology USING({REDCAP_RECORD_IDENTIFIER}, redcap_event_name)
                 WHERE measured_hand___1 IS TRUE
         '''
-        migrator.create_or_replace_table_index_or_view_from_stmt(impaired_view_name, create_stmt)
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         non_impaired_view_name = 'NonImpairedAssessment'
         create_stmt = f'''
@@ -64,7 +64,7 @@ def create_additional_views(migrator, metric_names):
                 LEFT JOIN Neurophysiology USING({REDCAP_RECORD_IDENTIFIER}, redcap_event_name)
                 WHERE measured_hand___2 IS TRUE
         '''
-        migrator.create_or_replace_table_index_or_view_from_stmt(non_impaired_view_name, create_stmt)
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         data_impaired_view_name = 'DataImpaired'
         create_stmt = f'''
@@ -79,7 +79,7 @@ def create_additional_views(migrator, metric_names):
                 LEFT JOIN {impaired_view_name} AS I USING({REDCAP_RECORD_IDENTIFIER}, IthSession)
                 WHERE (R.LeftHand AND R.LeftImpaired) OR (NOT R.LeftHand AND R.RightImpaired)
         '''
-        migrator.create_or_replace_table_index_or_view_from_stmt(data_impaired_view_name, create_stmt)
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         data_non_impaired_view_name = 'DataNonImpaired'
         create_stmt = f'''
@@ -94,7 +94,7 @@ def create_additional_views(migrator, metric_names):
                 LEFT JOIN {non_impaired_view_name} AS I USING({REDCAP_RECORD_IDENTIFIER}, IthSession)
                 WHERE (R.LeftHand AND NOT R.LeftImpaired) OR (NOT R.LeftHand AND NOT R.RightImpaired)
         '''
-        migrator.create_or_replace_table_index_or_view_from_stmt(data_non_impaired_view_name, create_stmt)
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         name = 'DataFull'
         create_stmt = f'''
@@ -106,4 +106,4 @@ def create_additional_views(migrator, metric_names):
                 FROM {data_non_impaired_view_name}
                 ORDER BY SubjectNr, LeftHand, IthSession
         '''
-        migrator.create_or_replace_table_index_or_view_from_stmt(name, create_stmt)
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)

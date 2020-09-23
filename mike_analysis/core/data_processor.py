@@ -15,8 +15,8 @@ from mike_analysis.evaluators import metric_evaluator_for_mode
 
 class DataProcessor:
     def __init__(self, in_conn, out_conn, migrator: TableMigrator):
-        self.in_conn = in_conn
-        self.out_conn = out_conn
+        self.in_conn: sqlite3.Connection = in_conn
+        self.out_conn: sqlite3.Connection = out_conn
         self.migrator = migrator
         self.metric_col_names_for_mode = {}
         self.result_cols = {}
@@ -46,9 +46,8 @@ class DataProcessor:
                     UNIQUE("SessionId", "LeftHand")
                 )
             '''
-            self.migrator.create_or_replace_table_index_or_view_from_stmt(Tables.Results[mode], create_result_table_query)
-            self.migrator.create_or_replace_table_index_or_view_from_stmt(f'{Tables.Results[mode]}_IthSession',
-                                                                          f'CREATE INDEX {Tables.Results[mode]}_IthSession '
+            self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_query)
+            self.migrator.create_or_update_table_index_or_view_from_stmt(f'CREATE INDEX {Tables.Results[mode]}_IthSession '
                                                                           f'ON {Tables.Results[mode]} (IthSession)')
 
             create_result_table_view_stmt = f'''
@@ -60,7 +59,7 @@ class DataProcessor:
                     GROUP BY P.PatientId, R.LeftHand, R.IthSession
                     ORDER BY P.PatientId, R.LeftHand, R.IthSession
             '''
-            self.migrator.create_or_replace_table_index_or_view_from_stmt(f'{Tables.Results[mode]}Full', create_result_table_view_stmt)
+            self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_view_stmt)
             combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]}Full USING(PatientId, LeftHand, IthSession)\n'
         return combined_session_result_stmt_joins
 
@@ -83,7 +82,7 @@ class DataProcessor:
                 WHERE {null_checks}
                 ORDER BY P.SubjectNr, LeftHand, IthSession
         '''
-        self.migrator.create_or_replace_table_index_or_view_from_stmt(session_result_view_name, create_combined_session_result_stmt)
+        self.migrator.create_or_update_table_index_or_view_from_stmt(create_combined_session_result_stmt)
         cfg.create_additional_views(self.migrator, metric_names)
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
