@@ -12,6 +12,7 @@ from mike_analysis.precomputers.derivatives import AbsVelocity
 @dataclass
 class PositionError(TrialMetric):
     name = 'PositionError'
+    bigger_is_better = False
     target_col: str
     actual_col: str
 
@@ -22,6 +23,7 @@ class PositionError(TrialMetric):
 @dataclass
 class AbsPositionError(PositionError):
     name = 'AbsPositionError'
+    bigger_is_better = False
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return abs(super().compute_single_trial(trial_data, precomputed, db_trial_result))
@@ -30,6 +32,7 @@ class AbsPositionError(PositionError):
 @dataclass
 class AbsPositionErrorAtSteadyState(TrialMetric):
     name = 'AbsPositionErrorAtSS'
+    bigger_is_better = False
     requires = (AbsVelocity, )
 
     @staticmethod
@@ -59,6 +62,7 @@ class AbsPositionErrorAtSteadyState(TrialMetric):
 
 @dataclass
 class MinRom(TrialMetric):
+    bigger_is_better = False
     name = 'MinROM'
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -68,6 +72,7 @@ class MinRom(TrialMetric):
 @dataclass
 class MaxRom(TrialMetric):
     name = 'MaxROM'
+    bigger_is_better = True
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return trial_data[PosCol].max()
@@ -76,6 +81,7 @@ class MaxRom(TrialMetric):
 @dataclass
 class Rom(TrialMetric):
     name = 'ROM'
+    bigger_is_better = True
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return abs(trial_data[PosCol].max() - trial_data[PosCol].min())

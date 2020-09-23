@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import scipy.optimize as opt
 
-from mike_analysis.core.meta import ForceCol, PosCol, SPosCol, TimeCol
+from mike_analysis.core.meta import ForceCol, PosCol, SPosCol, TimeCol, time_measured
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 from mike_analysis.precomputers.derivatives import AbsVelocity, Jerk
@@ -13,6 +13,7 @@ from mike_analysis.precomputers.derivatives import AbsVelocity, Jerk
 @dataclass
 class MaxVelocity(TrialMetric):
     name = 'MaxVelocity'
+    bigger_is_better = True
     requires = (AbsVelocity,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -22,6 +23,7 @@ class MaxVelocity(TrialMetric):
 @dataclass
 class MaxNormalizedVelocity(TrialMetric):
     name = 'MaxVelocityNormalized'
+    bigger_is_better = True
     requires = (AbsVelocity,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -34,6 +36,7 @@ class MaxNormalizedVelocity(TrialMetric):
 @dataclass
 class MAPR(TrialMetric):
     name = 'MAPR'
+    bigger_is_better = False
     requires = (AbsVelocity,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -46,6 +49,7 @@ class MAPR(TrialMetric):
 @dataclass
 class VelocitySD(TrialMetric):
     name = 'VelocitySD'
+    bigger_is_better = False
     requires = (AbsVelocity,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -55,6 +59,7 @@ class VelocitySD(TrialMetric):
 @dataclass
 class MaxForce(TrialMetric):
     name = 'MaxForce'
+    bigger_is_better = True
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         return trial_data[ForceCol].abs().max()
@@ -62,6 +67,7 @@ class MaxForce(TrialMetric):
 
 class NIJ(TrialMetric):
     name = 'NIJ'
+    bigger_is_better = False
     requires = (AbsVelocity, Jerk,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -90,6 +96,7 @@ class NIJ(TrialMetric):
 
 class R2(TrialMetric):
     name = 'R2'
+    bigger_is_better = False
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
         pass

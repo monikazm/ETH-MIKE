@@ -4,7 +4,7 @@ from typing import Callable, Iterable
 import numpy as np
 import pandas as pd
 
-from mike_analysis.core.metric import AggregateMetric
+from mike_analysis.core.metric import AggregateMetric, TrialMetric
 
 
 def sort_each_column(data: pd.DataFrame):
@@ -26,6 +26,9 @@ def compute_top_n_aggregate(data: pd.DataFrame, n: int, smaller_is_better_cols: 
 class Mean(AggregateMetric):
     name = 'Mean'
 
+    def bigger_is_better(self, single_metric: TrialMetric) -> bool:
+        return single_metric.bigger_is_better
+
     def compute_metric(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
         return all_metric_trial_values.mean(axis=0)
 
@@ -42,6 +45,9 @@ class MeanTop3(Mean):
 @dataclass
 class StdDev(AggregateMetric):
     name = 'Std'
+
+    def bigger_is_better(self, single_metric: TrialMetric) -> bool:
+        return False
 
     def compute_metric(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
         return all_metric_trial_values.std(axis=0)

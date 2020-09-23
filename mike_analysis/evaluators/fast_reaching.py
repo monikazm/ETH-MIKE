@@ -18,8 +18,8 @@ class _FastReachingSeriesEvaluator(MetricEvaluator):
     )
 
     aggregator_metrics = (
-        MeanTop3([MovementReactionTime.name, AbsPositionErrorAtSteadyState.name]),
-        StdDevTop3([MovementReactionTime.name, AbsPositionErrorAtSteadyState.name]),
+        MeanTop3([metric.name for metric in trial_metrics if not metric.bigger_is_better]),
+        StdDevTop3([metric.name for metric in trial_metrics if not metric.bigger_is_better]),
     )
 
     summary_metrics = (

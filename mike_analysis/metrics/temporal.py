@@ -12,6 +12,7 @@ from mike_analysis.precomputers.derivatives import ForceDerivative, AbsVelocity
 @dataclass
 class ForceReactionTime(TrialMetric):
     name = 'ForceRT'
+    bigger_is_better = False
     requires = (ForceDerivative,)
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
@@ -22,6 +23,7 @@ class ForceReactionTime(TrialMetric):
 @dataclass
 class MovementReactionTime(TrialMetric):
     name = 'MovementRT'
+    bigger_is_better = False
     requires = (AbsVelocity,)
 
     @staticmethod
