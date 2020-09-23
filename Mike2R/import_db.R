@@ -108,7 +108,7 @@ all_user_long_plot_metric <- function(metric) {
   }
 
   par(mar=c(5.1, 6.1, 4.1, 13.1))
-  matplot(all_x, all_y, type = "b", pch=1, lwd=2, ylim = y_vals,
+  matplot(all_x, all_y, type = "b", pch=1, lwd=2, ylim = y_vals,lty = 1:n,
           main=paste("Impaired hand:", pretty_metric_name), xlab="Session Nr", ylab=pretty_name_with_unit)
   legend('bottomright',inset=c(-0.2,0), legend = do.call(c, users), col=1:n, lty = 1:n, lwd = 2, xpd=TRUE)
 
