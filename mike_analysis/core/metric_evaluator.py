@@ -36,17 +36,14 @@ class MetricEvaluator(metaclass=ABCMeta):
                 dependency.add_to(precompute_dependencies)
         return precompute_dependencies
 
-    def get_result_column_names_and_types(self) -> List[Tuple[str, str]]:
+    def get_result_column_names_and_info(self) -> List[Tuple[str, str, bool]]:
         col_name_and_types = []
         for series_computer in self.series_metric_computers:
-            col_name_and_types += series_computer.get_result_column_names_and_types()
-        col_name_and_types += [(f'{metric.name}_{aggregate_metric.name}', aggregate_metric.d_type)
+            col_name_and_types += series_computer.get_result_column_names_and_info()
+        col_name_and_types += [(f'{metric.name}_{aggregate_metric.name}', aggregate_metric.d_type, aggregate_metric.bigger_is_better(metric))
                                for metric in self.trial_metrics for aggregate_metric in self.aggregator_metrics]
-        col_name_and_types += [(f'{metric.name}', metric.d_type) for metric in self.diff_metrics + self.summary_metrics]
-        return [(f'{self.name_prefix}_{name}', d_type) for name, d_type in col_name_and_types]
-
-    def get_result_column_names(self) -> List[str]:
-        return next(zip(*self.get_result_column_names_and_types()))
+        col_name_and_types += [(f'{metric.name}', metric.d_type, metric.bigger_is_better) for metric in self.diff_metrics + self.summary_metrics]
+        return [(f'{self.name_prefix}_{name}', d_type, big_is_better) for name, d_type, big_is_better in col_name_and_types]
 
     def compute_trial_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowType]) -> AllMetricsTrialValues:
         return [metric.compute(all_trials, precomputed_vals, db_results) for metric in self.trial_metrics]

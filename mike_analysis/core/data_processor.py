@@ -21,12 +21,31 @@ class DataProcessor:
         self.metric_col_names_for_mode = {}
         self.result_cols = {}
 
+        metric_meta = []
         for mode, evaluator in metric_evaluator_for_mode.items():
             if mode.name not in cfg.IMPORT_ASSESSMENTS:
                 continue
-            name_types = evaluator.get_result_column_names_and_types()
-            self.metric_col_names_for_mode[mode] = [name for name, _ in name_types]
-            self.result_cols[mode] = f',\n'.join([f'"{name}" {type_name}' for name, type_name in name_types])
+            name_and_info = evaluator.get_result_column_names_and_info()
+            self.metric_col_names_for_mode[mode] = [name for name, _, _ in name_and_info]
+            self.result_cols[mode] = f',\n'.join([f'"{name}" {type_name}' for name, type_name, _ in name_and_info])
+            metric_meta += [(name, mode, bigger_is_better) for name, _, bigger_is_better in name_and_info]
+
+        # Create metric meta table
+        create_stmt = f'''
+            CREATE TABLE "MetricInfo" (
+                "Id" integer primary key not null,
+                "Name" varchar not null UNIQUE,
+                "TaskType" integer not null,
+                "BiggerIsBetter" integer not null,
+                "HealthyAvg" numeric
+            )
+        '''
+        self.migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
+
+        # Insert metric metadata
+        self.out_conn.executemany('INSERT OR IGNORE INTO "MetricInfo" (Name, TaskType, BiggerIsBetter) '
+                                  'VALUES (?, ?, ?)', metric_meta)
+        self.out_conn.commit()
 
     def create_result_tables(self):
         # Create result tables which store result results for each session/hand combination for a particular assessment
