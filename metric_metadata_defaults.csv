@@ -1,0 +1,10 @@
+MetricName,HealthyAvg
+Rom_Active_ROM_Mean,76.77
+Rom_Passive_ROM_Mean,88.63
+Force_Extension_MaxForce_Mean,9.26
+Force_Flexion_MaxForce_Mean,38.55
+PositionMatching_AbsPositionError_Mean,5.17
+TrajectoryFollowing_Slow_RMSE_Mean,10.19
+TrajectoryFollowing_Fast_RMSE_Mean,10.85
+FastReaching_Extension_MaxVelocity_MeanTop3,435.93
+FastReaching_Flexion_MaxVelocity_MeanTop3,679.01

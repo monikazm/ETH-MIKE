@@ -6,6 +6,8 @@ from contextlib import nullcontext
 from typing import Dict, Tuple, List, Any
 from zipfile import ZipFile
 
+import pandas as pd
+
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.file_processor import process_tdms
 from mike_analysis.core.meta import Tables, AssessmentState, Modes, ModeDescs, time_measured
@@ -46,6 +48,17 @@ class DataProcessor:
         # Insert metric metadata
         self.out_conn.executemany('INSERT OR IGNORE INTO "MetricInfo" (Name, TaskType, BiggerIsBetter, Unit) '
                                   'VALUES (?, ?, ?, ?)', metric_meta)
+
+        if os.path.exists('metric_metadata_defaults.csv'):
+            try:
+                mdata = pd.read_csv('metric_metadata_defaults.csv')
+                self.out_conn.executemany('UPDATE "MetricInfo" '
+                                          'SET HealthyAvg = :HealthyAvg '
+                                          'WHERE Name == :MetricName AND HealthyAvg IS NULL;',
+                                          mdata.to_dict(orient='records'))
+            except Exception as e:
+                print(f'Failed to process metadata defaults file\n{e}')
+
         self.out_conn.commit()
 
     def create_result_tables(self):
