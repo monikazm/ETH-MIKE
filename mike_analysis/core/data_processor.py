@@ -33,16 +33,15 @@ class DataProcessor:
             metric_meta += [(name, mode, bigger_is_better, unit) for name, _, bigger_is_better, unit in name_and_info]
 
         # Create metric meta table
-        create_stmt = f'''
+        additional_columns = ('HealthyAvg', 'SrdImpaired', 'SrdNonImpaired')
+        create_stmt = '''
             CREATE TABLE "MetricInfo" (
                 "Id" integer primary key not null,
                 "Name" varchar not null UNIQUE,
                 "TaskType" integer not null,
                 "BiggerIsBetter" integer not null,
                 "Unit" varchar not null,
-                "HealthyAvg" numeric
-            )
-        '''
+            ''' + ',\n'.join([f'"{col}" numeric' for col in additional_columns]) + ')'
         self.migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         # Insert metric metadata
@@ -52,10 +51,13 @@ class DataProcessor:
         if os.path.exists('metric_metadata_defaults.csv'):
             try:
                 mdata = pd.read_csv('metric_metadata_defaults.csv')
-                self.out_conn.executemany('UPDATE "MetricInfo" '
-                                          'SET HealthyAvg = :HealthyAvg '
-                                          'WHERE Name == :MetricName AND HealthyAvg IS NULL;',
-                                          mdata.to_dict(orient='records'))
+                data_dict = mdata.to_dict(orient='records')
+                for meta_info in additional_columns:
+                    self.out_conn.executemany(f'''
+                        UPDATE "MetricInfo"
+                        SET "{meta_info}" = :{meta_info}
+                        WHERE Name == :MetricName AND "{meta_info}" IS NULL
+                    ''', data_dict)
             except Exception as e:
                 print(f'Failed to process metadata defaults file\n{e}')
 
