@@ -3,7 +3,8 @@ library(dplyr)
 library(RColorBrewer)
 
 # Set color palette
-palette(brewer.pal(n = 8, name = "Dark2"))
+get_palette <- colorRampPalette(brewer.pal(5, "Set1"))
+palette(get_palette(8))
 
 # connect to db
 con <- dbConnect(drv=RSQLite::SQLite(), dbname="..\\analysis_db.db")
@@ -78,7 +79,7 @@ long_plot_metric <- function(user, metric) {
   y = ccat(imp[[metric]], nimp[[metric]])
   max_x = max(x, na.rm = TRUE)
 
-  matplot(x, y, type = "b", pch=1,
+  matplot(x, y, type = "b", pch=1, lwd=2,
           main=paste("Longitudinal Plot for", user), xlab="Session Nr", ylab=pretty_name_with_unit)
   legend('topright', legend = c("impaired", "non-impaired"), col=1:2, lty = 1:2, lwd = 1)
 
@@ -94,10 +95,11 @@ all_user_long_plot_metric <- function(metric) {
   pretty_metric_name <- get_pretty_name(metric)
   pretty_name_with_unit <- paste(pretty_metric_name, get_unit(m_info))
 
-  by_user <- impaired_data[!is.na(impaired_data$year_of_birth),] %>% group_by(SubjectNr)
+  by_user <- impaired_data[!is.na(impaired_data$robotic_session_number),] %>% group_by(SubjectNr)
   data_per_user <- group_split(by_user)
   users <- group_keys(by_user)
   n <- nrow(users)
+  palette(get_palette(n))
   all_x <- do.call(ccat, lapply(data_per_user, function(data) data$IthSession))
   all_y <- do.call(ccat, lapply(data_per_user, function(data) data[[metric]]))
 
@@ -108,7 +110,7 @@ all_user_long_plot_metric <- function(metric) {
   }
 
   par(mar=c(5.1, 6.1, 4.1, 13.1))
-  matplot(all_x, all_y, type = "b", pch=1, lwd=2, ylim = y_vals,lty = 1:n,
+  matplot(all_x, all_y, type = "b", pch=1, lwd=2, ylim = y_vals, lty = 1:n, col=1:n,
           main=paste("Impaired hand:", pretty_metric_name), xlab="Session Nr", ylab=pretty_name_with_unit)
   legend('bottomright',inset=c(-0.2,0), legend = do.call(c, users), col=1:n, lty = 1:n, lwd = 2, xpd=TRUE)
 
@@ -146,8 +148,8 @@ plot_all_metrics_with_healthy_avg <- function(filename) {
 
 # example plots
 {
-  hist(2020-patients$year_of_birth, main = "Histogram of Age")
-  plot(density(2020-patients$year_of_birth), main = "Density of Age")
+  hist(2020-na.omit(patients$year_of_birth), main = "Histogram of Age")
+  plot(density(2020-na.omit(patients$year_of_birth)), main = "Density of Age")
   long_plot_metric("eojo", "Rom_Active_ROM_Mean")
   box_plot_metric("TrajectoryFollowing_Slow_NIJ_Mean")
   box_plot_metric("TrajectoryFollowing_Fast_MAPR_Mean")
