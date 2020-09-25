@@ -4,7 +4,7 @@ from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
 from mike_analysis.metrics.aggregate import MeanTop3, StdDevTop3
 from mike_analysis.metrics.motor import MaxVelocity, MaxNormalizedVelocity
 from mike_analysis.metrics.positional import AbsPositionErrorAtSteadyState
-from mike_analysis.metrics.summary import NrOfTrialsWithoutReachingTarget
+from mike_analysis.metrics.summary import NrOfTrialsWithoutReachingTarget, NumTrials
 from mike_analysis.metrics.temporal import MovementReactionTime
 
 
@@ -23,6 +23,7 @@ class _FastReachingSeriesEvaluator(MetricEvaluator):
     )
 
     summary_metrics = (
+        NumTrials(),
         NrOfTrialsWithoutReachingTarget(),
     )
 

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from mike_analysis.core.metric_evaluator import MetricEvaluator, RowType
 from mike_analysis.metrics.positional import PositionError, AbsPositionError
-from mike_analysis.metrics.summary import DeltaRMSE
+from mike_analysis.metrics.summary import DeltaRMSE, NumTrials
 
 target_col = 'Target'
 actual_col = 'Actual'
@@ -15,6 +15,7 @@ class _PreciseReachingSeriesEvaluator(MetricEvaluator):
         AbsPositionError(target_col, actual_col),
     )
     summary_metrics = (
+        NumTrials(),
         DeltaRMSE(target_col, actual_col),
     )
 

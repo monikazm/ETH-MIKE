@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from mike_analysis.core.metric_evaluator import MetricEvaluator
 from mike_analysis.metrics.positional import PositionError, AbsPositionError
-from mike_analysis.metrics.summary import DeltaRMSE
+from mike_analysis.metrics.summary import DeltaRMSE, NumTrials
 
 target_col = 'Target'
 actual_col = 'Indicated'
@@ -19,5 +19,6 @@ class PositionMatchingEvaluator(MetricEvaluator):
     )
 
     summary_metrics = (
+        NumTrials(),
         DeltaRMSE(target_col, actual_col),
     )

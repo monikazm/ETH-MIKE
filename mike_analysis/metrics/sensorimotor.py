@@ -23,15 +23,6 @@ class RMSError(TrialMetric):
         return sqrt((pos_delta * pos_delta).mean())
 
 
-class MeanAbsShift(TrialMetric):
-    name = 'MeanAbsShift'
-    bigger_is_better = False
-    unit = 's'
-
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
-        pass
-
-
 class MeanAbsPeakdiff(TrialMetric):
     name = 'MeanAbsPeakdiff'
     bigger_is_better = False

@@ -8,6 +8,8 @@ from mike_analysis.metrics.sensorimotor import RMSError, StdPeakAmplitude, MeanA
 
 # TODO (other metrics)
 # mean_abs_shift, mean_abs_peakdiff, R^2
+from mike_analysis.metrics.summary import NumTrials
+
 
 @dataclass
 class _TrajectoryFollowingSeriesEvaluator(MetricEvaluator):
@@ -19,8 +21,11 @@ class _TrajectoryFollowingSeriesEvaluator(MetricEvaluator):
         MeanAbsPeakdiff(),
         StdPeakAmplitude(),
         NIJ(),
-        #R2(),
         VelocitySD(),
+    )
+
+    summary_metrics = (
+        NumTrials(),
     )
 
 

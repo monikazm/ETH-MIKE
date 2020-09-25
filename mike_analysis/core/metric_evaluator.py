@@ -38,11 +38,12 @@ class MetricEvaluator(metaclass=ABCMeta):
 
     def get_result_column_names_and_info(self) -> List[Tuple[str, str, bool, str]]:
         col_name_and_types = []
-        for series_computer in self.series_metric_computers:
-            col_name_and_types += series_computer.get_result_column_names_and_info()
+        col_name_and_types += [(f'{metric.name}', metric.d_type, metric.bigger_is_better, metric.unit) for metric in self.summary_metrics]
         col_name_and_types += [(f'{metric.name}_{aggregate_metric.name}', aggregate_metric.d_type, aggregate_metric.bigger_is_better(metric), aggregate_metric.unit(metric))
                                for metric in self.trial_metrics for aggregate_metric in self.aggregator_metrics]
-        col_name_and_types += [(f'{metric.name}', metric.d_type, metric.bigger_is_better, metric.unit) for metric in self.diff_metrics + self.summary_metrics]
+        for series_computer in self.series_metric_computers:
+            col_name_and_types += series_computer.get_result_column_names_and_info()
+        col_name_and_types += [(f'{metric.name}', metric.d_type, metric.bigger_is_better, metric.unit) for metric in self.diff_metrics]
         return [(f'{self.name_prefix}_{name}', d_type, big_is_better, unit) for name, d_type, big_is_better, unit in col_name_and_types]
 
     def compute_trial_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowType]) -> AllMetricsTrialValues:

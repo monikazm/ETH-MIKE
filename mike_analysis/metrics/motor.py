@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-import scipy.optimize as opt
 
 from mike_analysis.core.meta import ForceCol, PosCol, SPosCol, TimeCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
@@ -100,12 +99,3 @@ class NIJ(TrialMetric):
 
         nij = np.sqrt((md_5 / (2.0 * l_2)) * np.trapz(jerk_2, trial_data[TimeCol]))
         return nij
-
-
-class R2(TrialMetric):
-    name = 'R2'
-    bigger_is_better = False
-    unit = ''
-
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
-        pass

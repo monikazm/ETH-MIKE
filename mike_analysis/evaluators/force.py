@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
 from mike_analysis.metrics.motor import MaxForce
+from mike_analysis.metrics.summary import NumTrials
 from mike_analysis.metrics.temporal import ForceReactionTime
 
 
@@ -10,6 +11,10 @@ class _ForceSeriesEvaluator(MetricEvaluator):
     trial_metrics = (
         MaxForce(),
         ForceReactionTime(),
+    )
+
+    summary_metrics = (
+        NumTrials(),
     )
 
 

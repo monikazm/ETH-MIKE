@@ -39,7 +39,7 @@ REDCAP_NAMES_AND_INDEX_COLS = {
 def create_additional_views(migrator, metric_names):
     """In this function you can create additional views in the output database if needed."""
 
-    if REDCAP_IMPORT:
+    if REDCAP_IMPORT or migrator.out_has_tables([val[0] for _, val in REDCAP_NAMES_AND_INDEX_COLS.items()]):
         patient_cols = migrator.out_get_all_columns_except('Patient', ('SubjectNr', 'PatientId'))
         demo_cols = migrator.out_get_all_columns_except('Demographics', [REDCAP_RECORD_IDENTIFIER, 'subject_code'])
 

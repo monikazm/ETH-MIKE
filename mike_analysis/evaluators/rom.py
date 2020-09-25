@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
 from mike_analysis.metrics.motor import MaxForce
 from mike_analysis.metrics.positional import MinRom, MaxRom, Rom
+from mike_analysis.metrics.summary import NumTrials
 
 
 @dataclass
@@ -14,11 +15,19 @@ class _RomActivePassiveSeriesEvaluator(MetricEvaluator):
         MaxForce(),
     )
 
+    summary_metrics = (
+        NumTrials(),
+    )
+
 
 @dataclass
 class _RomAutomaticPassiveSeriesEvaluator(MetricEvaluator):
     trial_metrics = (
         MaxForce(),
+    )
+
+    summary_metrics = (
+        NumTrials(),
     )
 
 

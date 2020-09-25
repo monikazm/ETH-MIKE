@@ -156,6 +156,7 @@ class DataProcessor:
             ith_session_for_assessment = len(prior_assessments)
 
             if not os.path.exists(path):
+                # If tdms not found, look for it in the zip files in the polybox upload dir and extract it if found
                 user_backup_dir = os.path.join(polybox_upload_dir, 'Session Results', subject_nr)
                 not_found = True
                 if os.path.exists(user_backup_dir):
@@ -191,7 +192,7 @@ class DataProcessor:
                             WHERE AssessmentId == ?
                             ORDER BY ResultId ASC
                         ''', (assessment_id,)).fetchall()
-            # Workaround for missing automatic passive results in rom task
+            # Workaround for missing automatic passive results in rom task (add dummy entries assuming same number of trials as active and passive)
             if mode == Modes.RangeOfMotion:
                 db_trial_results += [{'RomMode': 2} for _ in range(len(db_trial_results) // 2)]
             todo_assessments.setdefault(mode, []).append(

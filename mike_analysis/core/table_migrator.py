@@ -1,5 +1,6 @@
 import re
 import sqlite3
+from typing import List
 
 
 class TableMigrator:
@@ -13,6 +14,10 @@ class TableMigrator:
     def get_original_create_stmt(element_name: str, conn: sqlite3.Connection) -> str:
         ret = conn.execute(f"SELECT sql FROM sqlite_master WHERE name == '{element_name}'").fetchone()
         return '' if ret is None else ret[0]
+
+    def out_has_tables(self, table_names: List[str]):
+        entries = self.out_conn.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name IN ({','.join(['?']*len(table_names))})", table_names).fetchall()
+        return len(entries) == len(table_names)
 
     def migrate_table_index_or_view(self, element_name: str):
         create_stmt = self.get_original_create_stmt(element_name, self.in_conn).replace('autoincrement', '')

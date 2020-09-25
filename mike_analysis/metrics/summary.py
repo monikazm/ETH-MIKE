@@ -10,6 +10,17 @@ from mike_analysis.core.precomputer import PrecomputeDict
 
 
 @dataclass
+class NumTrials(SummaryMetric):
+    name = 'NumTrials'
+    d_type = DTypes.INT
+    bigger_is_better = True
+    unit = ''
+
+    def compute_metric_value(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowType]) -> Scalar:
+        return len(all_trials)
+
+
+@dataclass
 class DeltaRMSE(SummaryMetric):
     name = 'RMSE'
     d_type = DTypes.DOUBLE
