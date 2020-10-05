@@ -14,6 +14,7 @@ con <- dbConnect(drv=RSQLite::SQLite(), dbname="..\\analysis_db.db")
 # Metric metadata
 metric_info <- dbGetQuery(conn=con, "SELECT *
                                      FROM MetricInfo")
+numtrial_metrics <- metric_info[endsWith(metric_info$Name, "NumTrials"),]
 
 # Patient metadata (joined with demographics from redcap)
 patients <- dbGetQuery(conn=con, "SELECT *
@@ -87,7 +88,7 @@ plot_srd_arrows <- function(srd, bigger_is_better, height, data_x, data_y) {
 ## PLOTTING FUNCTIONS
 
 # Low level metric line plotter
-plot_metric_for_all_series <- function(title, metric, series_data, series_names, series_srd_names, x_col = 'IthSession') {
+plot_metric_for_all_series <- function(title, metric, series_data, series_names, series_srd_names, x_col = 'IthSession', show_std = FALSE) {
   m_info = metric_info[metric_info$Name == metric,]
   pretty_metric_name <- get_pretty_name(metric)
   pretty_name_with_unit <- paste(pretty_metric_name, get_unit(m_info))
@@ -101,7 +102,8 @@ plot_metric_for_all_series <- function(title, metric, series_data, series_names,
   max_x <- max(all_x, na.rm = TRUE)
   min_y <- min(all_y[is.finite(all_y)], na.rm = TRUE)
   max_y <- max(all_y[is.finite(all_y)], na.rm = TRUE)
-  y_vals <- range(min_y, max_y)
+  delta_y = max_y - min_y
+  y_vals <- range(min_y - delta_y * 0.05, max_y + delta_y * 0.05)
   if (!m_info$BiggerIsBetter) {
     y_vals <- rev(y_vals)
   }
@@ -123,21 +125,36 @@ plot_metric_for_all_series <- function(title, metric, series_data, series_names,
 
   mapply(function(data, srd_name) plot_srd_arrows(m_info[[srd_name]], m_info$BiggerIsBetter, max_y - min_y, data[[x_col]], data[[metric]]),
          series_data, series_srd_names)
+
+  # Add std deviation bars for mean metrics
+  if (show_std && endsWith(metric, "Mean")) {
+    std_metric = paste(substr(metric, 0, nchar(metric) - 4), "Std", sep="")
+    if (std_metric %in% colnames(series_data[[1]])) {
+      # count_metric_name = numtrial_metrics[numtrial_metrics$TaskType == m_info$TaskType
+      #                                      & startsWith(metric, substr(numtrial_metrics$Name, 1, nchar(numtrial_metrics$Name) - 9)),]$Name
+      for (series in series_data) {
+        sdev = series[[std_metric]]
+        #sem = series[[std_metric]] / sqrt(series[[count_metric_name]])
+        arrows(series[[x_col]], series[[metric]]-sdev, series[[x_col]], series[[metric]]+sdev, length=0.05, angle=90, code=3, xpd=TRUE)
+      }
+    }
+  }
 }
 
 
 # High level function to plot longitudinal data for a single user
-long_plot_metric <- function(user, metric) {
+long_plot_metric <- function(user, metric, show_std = TRUE) {
   plot_metric_for_all_series(paste("Longitudinal Plot for:", user),
                              metric,
                              list(impaired_data[impaired_data$SubjectNr == user,], nonimpaired_data[nonimpaired_data$SubjectNr == user,]),
                              list("impaired", "non-impaired"),
-                             list("SrdImpaired", "SrdNonImpaired"), x_col = "robotic_session_number")
+                             list("SrdImpaired", "SrdNonImpaired"), x_col = "robotic_session_number", show_std)
 }
 
 # High level function to plot longitudinal impaired data for all users
 all_user_long_plot_metric <- function(metric) {
-  by_user <- impaired_data[!is.na(impaired_data$robotic_session_number),] %>% group_by(SubjectNr)
+  # group data by SubjectNr (and ignore patients which do not have any redcap data)
+  by_user <- impaired_data[!is.na(impaired_data$date_of_demographics),] %>% group_by(SubjectNr)
   data_per_user <- group_split(by_user)
   users <- group_keys(by_user)
   plot_metric_for_all_series(paste("Impaired hand:", get_pretty_name(metric)),
