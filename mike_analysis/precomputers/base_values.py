@@ -7,8 +7,8 @@ from mike_analysis.core.precomputer import ValuePrecomputer, PrecomputedValue, P
 
 
 @dataclass(frozen=True)
-class MeanPeriodComputer(ValuePrecomputer):
+class SamplingRateComputer(ValuePrecomputer):
     def _compute_value(self, data: pd.DataFrame, precomputed_values: PrecomputeDict) -> PrecomputedValue:
-        period = data[TimeCol].diff().mean()
-        return period
-MeanPeriod = MeanPeriodComputer()
+        fs = 1.0 / data[TimeCol].diff().median()
+        return fs
+SamplingRate = SamplingRateComputer()

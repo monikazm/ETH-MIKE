@@ -19,11 +19,10 @@ class Precomputer(metaclass=ABCMeta):
         precomputers[self] = None
 
     @staticmethod
-    def get_default_filter(period: float) -> Tuple[np.ndarray, np.ndarray]:
+    def get_filter(fs: float, fc: float = 20.0, deg=2) -> Tuple[np.ndarray, np.ndarray]:
         #fc = 8.0
         #b, a = butter(4, 2.0 * fc * period)
-        fc = 20.0
-        b, a = butter(2, 2.0 * fc * period)
+        b, a = butter(deg, fc, fs=fs)
         return b, a
 
     @abstractmethod
