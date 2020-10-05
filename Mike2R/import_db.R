@@ -1,6 +1,7 @@
 library(RSQLite)
 library(dplyr)
 library(RColorBrewer)
+library(corrplot)
 
 # Set color palette
 get_palette <- colorRampPalette(brewer.pal(5, "Set1"))
@@ -61,8 +62,8 @@ get_pretty_name <- function(metric) {
 }
 
 get_unit <- function(metric_info) {
-  unit = metric_info$Unit
-  if (unit != '') unit = paste("[", unit, "]", sep="")
+  unit <- metric_info$Unit
+  if (unit != '') unit <- paste("[", unit, "]", sep="")
   return(unit)
 }
 
@@ -71,11 +72,11 @@ plot_srd_arrows <- function(srd, bigger_is_better, height, data_x, data_y) {
 
   diff_data = diff(data_y)
   for (i in 1:length(diff_data)) {
-    dy = diff_data[i]
-    x = (data_x[i+1] + data_x[i]) / 2.0
-    y_cent = (data_y[i+1] + data_y[i]) / 2.0
-    y_offset = height * 0.04
-    arrow_col = 'gray42' #if ((dy > srd && bigger_is_better) || (dy < -srd && !bigger_is_better)) 'springgreen3' else 'red'
+    dy <- diff_data[i]
+    x <- (data_x[i+1] + data_x[i]) / 2.0
+    y_cent <- (data_y[i+1] + data_y[i]) / 2.0
+    y_offset <- height * 0.04
+    arrow_col <- 'gray42' #if ((dy > srd && bigger_is_better) || (dy < -srd && !bigger_is_better)) 'springgreen3' else 'red'
     if (dy > srd) {
       arrows(x, y_cent - y_offset * 0.5, x, y_cent + y_offset, col=arrow_col, lwd=2.5, length=0.10)
     }
@@ -89,7 +90,7 @@ plot_srd_arrows <- function(srd, bigger_is_better, height, data_x, data_y) {
 
 # Low level metric line plotter
 plot_metric_for_all_series <- function(title, metric, series_data, series_names, series_srd_names, x_col = 'IthSession', show_std = FALSE) {
-  m_info = metric_info[metric_info$Name == metric,]
+  m_info <- metric_info[metric_info$Name == metric,]
   pretty_metric_name <- get_pretty_name(metric)
   pretty_name_with_unit <- paste(pretty_metric_name, get_unit(m_info))
 
@@ -128,12 +129,12 @@ plot_metric_for_all_series <- function(title, metric, series_data, series_names,
 
   # Add std deviation bars for mean metrics
   if (show_std && endsWith(metric, "Mean")) {
-    std_metric = paste(substr(metric, 0, nchar(metric) - 4), "Std", sep="")
+    std_metric <- paste(substr(metric, 0, nchar(metric) - 4), "Std", sep="")
     if (std_metric %in% colnames(series_data[[1]])) {
       # count_metric_name = numtrial_metrics[numtrial_metrics$TaskType == m_info$TaskType
       #                                      & startsWith(metric, substr(numtrial_metrics$Name, 1, nchar(numtrial_metrics$Name) - 9)),]$Name
       for (series in series_data) {
-        sdev = series[[std_metric]]
+        sdev <- series[[std_metric]]
         #sem = series[[std_metric]] / sqrt(series[[count_metric_name]])
         arrows(series[[x_col]], series[[metric]]-sdev, series[[x_col]], series[[metric]]+sdev, length=0.05, angle=90, code=3, xpd=TRUE)
       }
@@ -166,7 +167,7 @@ all_user_long_plot_metric <- function(metric) {
 
 # Box plot for a metric, comparing non impaired and impaired data
 box_plot_metric <- function(metric) {
-  m_info = metric_info[metric_info$Name == metric,]
+  m_info <- metric_info[metric_info$Name == metric,]
   pretty_metric_name <- get_pretty_name(metric)
   pretty_name_with_unit <- paste(pretty_metric_name, get_unit(m_info))
 
@@ -179,7 +180,7 @@ box_plot_metric <- function(metric) {
 
 # plot all metrics which have a healthy avg value defined (currently only front-end metrics)
 plot_all_metrics_with_healthy_avg <- function() {
-  infos = metric_info[!is.na(metric_info$HealthyAvg),]
+  infos <- metric_info[!is.na(metric_info$HealthyAvg),]
   for (i in rownames(infos)) {
     all_user_long_plot_metric(infos[i, 'Name'])
   }
@@ -192,24 +193,47 @@ plot_all_metrics <- function() {
   }
 }
 
+# recommended pdf dims for all complete metrics width=20, height=20
+plot_correlation_summary <- function(impaired=TRUE, only_first_trial=TRUE) {
+  df <- if (impaired) impaired_data else nonimpaired_data
+
+  # Remove patients without redcap data
+  df <- df[!is.na(df$date_of_demographics),]
+
+  if (only_first_trial) {
+    df <- df[df$IthSession==1,]
+  }
+
+  # Remove non-numeric columns
+  df <- select_if(df, is.numeric)
+
+  # Replace inf values by NA
+  df <- do.call(data.frame,lapply(df, function(x) replace(x, is.infinite(x),NA)))
+
+  # Remove columns with 0 variance or containing na values
+  df <- Filter(function(df) var(df), df)
+
+  M <- cor(df)
+  corrplot(M, type="upper", order="hclust", col=brewer.pal(n=8, name="RdYlBu"))
+}
+
 # Run the specified plotting function and store result as pdf
 # Usage e.g. pdfplot("somefilename", plot_all_metrics)
 #       or   pdfplot("somefilename", plot_all_metrics_with_healthy_avg)  # -> to reproduce pdf with plots for all frontend metrics
 #       or   pdfplot("somefilename", function() all_user_long_plot_metric("Force_Flexion_MaxForce_Mean") )
-pdfplot <- function(filename, plot_function) {
-  cairo_pdf(paste(filename, ".pdf", sep=""), width = 10, height=6, onefile = TRUE)
+#       or   pdfplot("somefilename", plot_correlation_summary, width=20, height=20)
+pdfplot <- function(filename, plot_function, width=10, height=6) {
+  cairo_pdf(paste(filename, ".pdf", sep=""), width=width, height=height, onefile = TRUE)
   plot_function()
   dev.off()
 }
 
 # example plots
-{
-  hist(2020-na.omit(patients$year_of_birth), main = "Histogram of Age")
-  plot(density(2020-na.omit(patients$year_of_birth)), main = "Density of Age")
-  long_plot_metric("eojo", "Rom_Active_ROM_Mean")
-  box_plot_metric("TrajectoryFollowing_Slow_NIJ_Mean")
-  box_plot_metric("TrajectoryFollowing_Fast_MAPR_Mean")
-  all_user_long_plot_metric("Rom_Active_ROM_Mean")
-  all_user_long_plot_metric("Rom_Passive_ROM_Mean")
-  all_user_long_plot_metric("Force_Flexion_MaxForce_Mean")
-}
+# hist(2020-na.omit(patients$year_of_birth), main = "Histogram of Age")
+# plot(density(2020-na.omit(patients$year_of_birth)), main = "Density of Age")
+# long_plot_metric("eojo", "Rom_Active_ROM_Mean")
+# box_plot_metric("TrajectoryFollowing_Slow_NIJ_Mean")
+# box_plot_metric("TrajectoryFollowing_Fast_MAPR_Mean")
+# all_user_long_plot_metric("Rom_Active_ROM_Mean")
+# all_user_long_plot_metric("Rom_Passive_ROM_Mean")
+# all_user_long_plot_metric("Force_Flexion_MaxForce_Mean")
