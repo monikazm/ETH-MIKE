@@ -18,6 +18,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         return pd.to_datetime(timestamp).strftime('%Y-%m-%d')
     sqlite3.register_adapter(pd.Timestamp, ts_adapter)
 
+    # Open database files
     try:
         in_conn = sqlite3.connect(f'{pathlib.Path(db_path).absolute().as_uri()}?mode=ro', uri=True) # Open db.db in read-only mode
         out_conn = sqlite3.connect('analysis_db.db')
@@ -35,9 +36,15 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
     migrator.migrate_table_index_or_view(f'{Tables.Session}_PatientId')
     migrator.migrate_table_data(Tables.Session)
 
+    # Import data from redcap if enabled
     if cfg.REDCAP_IMPORT:
-        RedcapImporter(migrator, out_conn).import_all_from_redcap()
+        try:
+            RedcapImporter(migrator, out_conn).import_all_from_redcap()
+        except Exception as e:
+            print(f'There was a problem while importing data from redcap:\n{e}')
+            sys.exit(-2)
 
+    # Import all data, compute metrics and store results in analysis database
     processor = DataProcessor(in_conn, out_conn, migrator)
     with time_measured('result table creation'):
         combined_session_result_stmt_joins = processor.create_result_tables()

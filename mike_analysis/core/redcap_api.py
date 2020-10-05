@@ -36,9 +36,13 @@ class RedCap:
         return self._post_request(data)
 
     def export_columns(self, redcap_excluded_fields: Set[str]) -> Dict[str, List[Tuple[str, str]]]:
+        return self._columns_from_metadata(self.export_metadata(), redcap_excluded_fields)
+
+    @staticmethod
+    def _columns_from_metadata(data: pd.DataFrame, redcap_excluded_fields: Set[str]) -> Dict[str, List[Tuple[str, str]]]:
         redcap_columns = {}
 
-        data = self.export_metadata().to_dict(orient='list')
+        data = data.to_dict(orient='list')
         for field_type, form_name, field_name, select_choices, validation_type in zip(data['field_type'],
                                                                                       data['form_name'],
                                                                                       data['field_name'],
@@ -103,9 +107,7 @@ class RedCap:
             'returnFormat': 'json'
         }
         req_dict.update(req)
-        try:
-            response = requests.post(self.api_url, data=req_dict).text
-            return pd.read_csv(io.StringIO(response), parse_dates=date_cols)
-        except Exception as e:
-            print(e)
-            return pd.DataFrame()
+        response = requests.post(self.api_url, data=req_dict)
+        if not response.ok:
+            raise RuntimeError('Invalid redcap http response')
+        return pd.read_csv(io.StringIO(response.text), parse_dates=date_cols)
