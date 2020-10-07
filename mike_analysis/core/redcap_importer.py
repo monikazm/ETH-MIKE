@@ -5,6 +5,7 @@ from typing import Dict
 
 import pandas as pd
 
+import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.meta import SqlTypes, time_measured
 from mike_analysis.core.redcap_api import RedCap
@@ -36,7 +37,7 @@ class RedcapImporter:
 
     def _create_tables_from_redcap_metadata(self) -> Dict[str, ColumnCollection]:
         # Request datadict over API
-        redcap_columns = self.rc.export_columns(redcap_excluded_fields={cfg.REDCAP_RECORD_IDENTIFIER} | cfg.REDCAP_EXCLUDED_COLS)
+        redcap_columns = self.rc.export_columns(redcap_excluded_fields={study_cfg.REDCAP_RECORD_IDENTIFIER} | study_cfg.REDCAP_EXCLUDED_COLS)
 
         # Request form and event metadata
         repeating_forms_and_events = self.rc.export_repeating_events()
@@ -52,15 +53,15 @@ class RedcapImporter:
         for form in redcap_columns.keys():
             events = event_map[event_map['form'] == form]
             if events.loc[:, 'unique_event_name'].isin(repeating_events).any():
-                key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', 'varchar not null'),
+                key = [(study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', 'varchar not null'),
                        ('redcap_repeat_instance', 'integer not null')]
             elif len(events) > 1:
-                key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', f'varchar not null')]
+                key = [(study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ('redcap_event_name', f'varchar not null')]
             else:
-                key = [(cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ]
+                key = [(study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null'), ]
 
             form_columns[form] = self.ColumnCollection(key, redcap_columns[form])
-            self._create_redcap_table(form_columns[form].key_cols + form_columns[form].data_cols, [name for name, _ in key], *cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
+            self._create_redcap_table(form_columns[form].key_cols + form_columns[form].data_cols, [name for name, _ in key], *study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
         return form_columns
 
     def _import_data_from_redcap(self, form_columns: Dict[str, ColumnCollection]):
@@ -79,7 +80,7 @@ class RedcapImporter:
 
             metric_column_names = f', '.join(all_col_names)
             insert_placeholder = f"({f', '.join(['?' for _ in all_col_names])})"
-            pretty_name = cfg.REDCAP_NAMES_AND_INDEX_COLS[form][0]
+            pretty_name = study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form][0]
             insert_stmt = f'INSERT OR REPLACE INTO "{pretty_name}" ({metric_column_names}) VALUES {insert_placeholder}'
             self.out_conn.executemany(insert_stmt, records)
         self.out_conn.commit()

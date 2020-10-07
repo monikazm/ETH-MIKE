@@ -77,5 +77,5 @@ class TableMigrator:
             self.out_conn.executemany(f'INSERT OR IGNORE INTO {table_name} VALUES {placeholder}', entries)
         self.out_conn.commit()
 
-    def out_get_all_columns_except(self, table, ignore_list):
+    def out_get_all_columns_except(self, table, ignore_list) -> List[str]:
         return [elem[1] for elem in self.out_conn.execute(f'PRAGMA table_info({table});').fetchall() if elem[1] not in ignore_list]

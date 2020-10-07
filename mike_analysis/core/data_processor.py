@@ -8,6 +8,7 @@ from zipfile import ZipFile
 
 import pandas as pd
 
+import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.file_processor import process_tdms
 from mike_analysis.core.meta import Tables, AssessmentState, Modes, ModeDescs, time_measured
@@ -83,7 +84,7 @@ class DataProcessor:
             '''
             self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_query)
             self.migrator.create_or_update_table_index_or_view_from_stmt(f'CREATE INDEX {Tables.Results[mode]}_IthSession '
-                                                                          f'ON {Tables.Results[mode]} (IthSession)')
+                                                                         f'ON {Tables.Results[mode]} (IthSession)')
 
             create_result_table_view_stmt = f'''
                 CREATE VIEW "{Tables.Results[mode]}Full" AS
@@ -118,7 +119,7 @@ class DataProcessor:
                 ORDER BY P.SubjectNr, LeftHand, IthSession
         '''
         self.migrator.create_or_update_table_index_or_view_from_stmt(create_combined_session_result_stmt)
-        cfg.create_additional_views(self.migrator, metric_names)
+        study_cfg.create_additional_views(self.migrator, metric_names)
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
         # Retrieve all completed assessments which are currently marked as a result of a session
