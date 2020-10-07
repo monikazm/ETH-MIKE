@@ -57,17 +57,11 @@ class PrecomputationTests(unittest.TestCase):
         assert_almost_equal(np.mean(abs_v), np.mean(abs_v_exact), decimal=4)
 
     def test_jerk(self):
-        b, a = Precomputer.get_filter(sampling_rate)
+        b, a = Precomputer.get_filter(sampling_rate, fc=20.0, deg=2)
 
         t, p, jerk_exact = self._compute_nth_derivative(5.0, lambda t: 15.0 * (sym.sin(2.0*sym.pi*t/5.0) + sym.sin(2.0*sym.pi*3*t/5.0)), n=3)
         t_full = np.linspace(-5.0, 10.0, 1000*15 + 1)
         p_in = filtfilt(b, a, p(t_full))# + np.random.normal(0, 0.0001, len(t_full)))
-
-        # plt.plot(t, p_in[5000:-5000])
-        # plt.plot(t, p(t))
-        # plt.show()
-
-        #p_in = filtfilt(b, a, p(t) + np.random.normal(0, 0.001, len(t)))#filtfilt(b, a, p(t))# + np.random.normal(0, 0.000001, len(t))#filtfilt(b, a, p(t) + np.random.normal(scale=0.1, size=len(t)))
 
         v = Velocity._compute_column(pd.DataFrame({TimeCol: t_full, PosCol: p_in}), {SamplingRate: sampling_rate})
         jerk = Jerk._compute_column(pd.DataFrame({TimeCol: t_full, PosCol: p_in}), {
@@ -75,14 +69,9 @@ class PrecomputationTests(unittest.TestCase):
             Velocity: v
         })
 
-        # plt.plot(t, jerk[5000:-5000], label='jerk computed')
-        # plt.plot(t, jerk_exact, label='jerk exact')
-        # plt.legend()
-        # plt.show()
-
         # Check if computed velocity roughly matches symbolic solution (will not be equal due to numerical differentiation and filtering)
-        assert_almost_equal(jerk[5000:-5000], jerk_exact, decimal=0)
-        assert_almost_equal(np.mean(jerk[5000:-5000]), np.mean(jerk_exact), decimal=4)
+        assert_almost_equal(jerk[5000:-5000], jerk_exact, decimal=2)
+        assert_almost_equal(np.mean(jerk[5000:-5000]), np.mean(jerk_exact), decimal=6)
 
 
 if __name__ == '__main__':

@@ -39,7 +39,7 @@ def _read_tdms_file(filename: str):
     return tdms_data
 
 
-def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_computers) -> List[pd.DataFrame]:
+def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_computers, filter_position=True) -> List[pd.DataFrame]:
     # Drop duplicate rows to avoid nans in derivatives
     data.drop_duplicates(subset=[TimeCol], inplace=True)
 
@@ -55,9 +55,15 @@ def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_comp
         data[ForceCol] = -data[ForceCol]
 
     # Filter position signal
-    b, a = Precomputer.get_filter(precomputed_cols[SamplingRate], fc=20.0)
-    pos_flt = filtfilt(b, a, data[PosCol])
+    b, a = Precomputer.get_filter(precomputed_cols[SamplingRate], fc=20.0, deg=2)
+    pos_flt = filtfilt(b, a, data[PosCol]) if filter_position else data[PosCol]
     data[PosCol] = pos_flt
+    # import matplotlib.pyplot as plt
+    # plt.plot(data[TimeCol], data[PosCol], label='unfiltered')
+    # plt.plot(data[TimeCol], pos_flt, label='filtered20')
+    # plt.title('pos')
+    # plt.legend()
+    # plt.show()
 
     # Precompute other columns
     for cc in column_computers:

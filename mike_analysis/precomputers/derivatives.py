@@ -30,6 +30,12 @@ class VelocityComputer(ColumnPrecomputer):
 
         b, a = self.get_filter(precomputed_values[SamplingRate])
         dp_dt_flt = filtfilt(b, a, dp_dt)
+        # import matplotlib.pyplot as plt
+        # plt.plot(data[TimeCol], dp_dt, label='unfiltered')
+        # plt.plot(data[TimeCol], dp_dt_flt, label='filtered')
+        # plt.legend()
+        # plt.title('v')
+        # plt.show()
         return dp_dt_flt
 Velocity = VelocityComputer('Velocity')
 
@@ -48,15 +54,28 @@ class JerkComputer(ColumnPrecomputer):
     requires = (SamplingRate, Velocity,)
 
     def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict) -> np.array:
+        b, a = self.get_filter(precomputed_values[SamplingRate])
+
         # Compute acceleration
         accel = np.gradient(precomputed_values[Velocity], data[TimeCol])
-        b, a = self.get_filter(precomputed_values[SamplingRate])
         accel_flt = filtfilt(b, a, accel)
+
+        # import matplotlib.pyplot as plt
+        # plt.plot(data[TimeCol], accel, label='unfiltered')
+        # plt.plot(data[TimeCol], accel_flt, label='filtered')
+        # plt.title('accel')
+        # plt.legend()
 
         # Compute jerk
         jerk = np.gradient(accel_flt, data[TimeCol])
-        b, a = self.get_filter(precomputed_values[SamplingRate], fc=20.0)
         jerk_flt = filtfilt(b, a, jerk)
+
+        # plt.plot(data[TimeCol], jerk, label='unfiltered')
+        # plt.plot(data[TimeCol], jerk_flt, label='filtered')
+        # plt.title('jerk')
+        # plt.legend()
+        #
+        # plt.show()
 
         return jerk_flt
 Jerk = JerkComputer('Jerk')
