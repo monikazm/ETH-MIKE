@@ -64,10 +64,10 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
         name = 'DataFull'
         create_stmt = f'''
             CREATE VIEW "{name}" AS
-                SELECT *
+                SELECT 1 AS impaired, *
                 FROM {data_impaired_view_name}
                 UNION ALL
-                SELECT *
+                SELECT 0 AS impaired, *
                 FROM {data_non_impaired_view_name}
                 ORDER BY SubjectNr, LeftHand, IthSession
         '''
