@@ -57,7 +57,9 @@ def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_comp
     # Filter position signal
     b, a = Precomputer.get_filter(precomputed_cols[SamplingRate], fc=20.0, deg=2)
     pos_flt = filtfilt(b, a, data[PosCol]) if filter_position else data[PosCol]
-    data[PosCol] = pos_flt
+    data[PosCol] = pos_flt.clip(-90.0, 90.0)
+    #data[PosCol] = pos_flt
+
     # import matplotlib.pyplot as plt
     # plt.plot(data[TimeCol], data[PosCol], label='unfiltered')
     # plt.plot(data[TimeCol], pos_flt, label='filtered20')
