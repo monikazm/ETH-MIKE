@@ -71,18 +71,22 @@ long_plot_metric <- function(user, metric, show_std = TRUE) {
   print(graph)
 }
 
-update_plot <- function(metric, show_std = TRUE, start_date = '2020-10-02', end_date = '2020-10-08') {
+update_plot <- function(metric, start_date = '2020-10-02', end_date = '2020-10-08') {
   m_info <- metric_info[metric_info$Name == metric,]
   pretty_metric_name <- get_pretty_name(metric)
   pretty_name_with_unit <- paste(pretty_metric_name, get_unit(m_info))
   
+  # Limit to impaired results
   metric_data <- all_data[all_data$impaired == 1,]
   
+  # Exclude future results (results after end_date)
+  metric_data <- metric_data[metric_data$SessionStartDate <= end_date,]
+
   # Add for every user whether a new data point was added in the selected time span
   metric_data <- metric_data %>% group_by(SubjectNr) %>%
                     mutate(in_range = any(SessionStartDate >= start_date & SessionStartDate <= end_date)) %>%
                     mutate(new_data = SessionStartDate >= start_date & SessionStartDate <= end_date)
-  
+
   ## Create plot
   graph <- ggplot(subset(metric_data, in_range == TRUE), aes_string(x = "IthSession", y = metric, color = "SubjectNr"))
   
