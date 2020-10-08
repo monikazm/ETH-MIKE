@@ -26,30 +26,39 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         print(f'ERROR: Failed to open db\n{e}')
         sys.exit(-1)
 
-    migrator = TableMigrator(in_conn, out_conn)
+    try:
+        migrator = TableMigrator(in_conn, out_conn)
 
-    # Copy patient and session data from input database
-    migrator.migrate_table_index_or_view(Tables.Patient)
-    migrator.migrate_table_index_or_view(f'{Tables.Patient}_SubjectNr')
-    migrator.migrate_table_data(Tables.Patient)
-    migrator.migrate_table_index_or_view(Tables.Session)
-    migrator.migrate_table_index_or_view(f'{Tables.Session}_PatientId')
-    migrator.migrate_table_data(Tables.Session)
+        # Copy patient, session and completed assessment data from input database
+        migrator.migrate_table_index_or_view(Tables.Patient)
+        migrator.migrate_table_index_or_view(f'{Tables.Patient}_SubjectNr')
+        migrator.migrate_table_data(Tables.Patient)
 
-    # Import data from redcap if enabled
-    if cfg.REDCAP_IMPORT:
-        try:
-            RedcapImporter(migrator, out_conn).import_all_from_redcap()
-        except Exception as e:
-            print(f'There was a problem while importing data from redcap:\n{e}')
-            sys.exit(-2)
+        migrator.migrate_table_index_or_view(Tables.Session)
+        migrator.migrate_table_index_or_view(f'{Tables.Session}_PatientId')
+        migrator.migrate_table_data(Tables.Session)
 
-    # Import all data, compute metrics and store results in analysis database
-    processor = DataProcessor(in_conn, out_conn, migrator)
-    with time_measured('result table creation'):
-        combined_session_result_stmt_joins = processor.create_result_tables()
-        processor.create_result_views(combined_session_result_stmt_joins)
-    processor.compute_and_store_metrics(data_dir, polybox_upload_dir)
+        migrator.migrate_table_index_or_view(f'{Tables.Assessment}')
+        migrator.migrate_table_index_or_view(f'{Tables.Assessment}_SessionId')
+        migrator.migrate_table_data(Tables.Assessment, 'State == 3 AND IsTrialRun IS NOT TRUE')
+
+        # Import data from redcap if enabled
+        if cfg.REDCAP_IMPORT:
+            try:
+                RedcapImporter(migrator, out_conn).import_all_from_redcap()
+            except Exception as e:
+                print(f'There was a problem while importing data from redcap:\n{e}')
+                sys.exit(-2)
+
+        # Import all data, compute metrics and store results in analysis database
+        processor = DataProcessor(in_conn, out_conn, migrator)
+        with time_measured('result table creation'):
+            combined_session_result_stmt_joins = processor.create_result_tables()
+            processor.create_result_views(combined_session_result_stmt_joins)
+        processor.compute_and_store_metrics(data_dir, polybox_upload_dir)
+    finally:
+        in_conn.close()
+        out_conn.close()
 
 
 def main(args):

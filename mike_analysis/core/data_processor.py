@@ -65,6 +65,32 @@ class DataProcessor:
         self.out_conn.commit()
 
     def create_result_tables(self):
+        # Create Pseudo Session View
+        self.migrator.create_or_update_table_index_or_view_from_stmt('''
+            CREATE VIEW "PseudoSession" AS
+            SELECT PatientId, LeftHand, IthSession, PseudoStartTime, AssessmentId
+            FROM (
+                SELECT PatientId, LeftHand, IthSession, DATE(MIN(SessionStartTime)) AS PseudoStartTime
+                FROM (
+                    SELECT S.PatientId, A.LeftHand,
+                           ROW_NUMBER() OVER (PARTITION BY S.PatientId, A.LeftHand, A.TaskType ORDER BY AssessmentId ASC) AS IthSession,
+                           S.SessionStartTime
+                    FROM Assessment AS A
+                    JOIN Session AS S USING(SessionId)
+                )
+                GROUP BY PatientId, LeftHand, IthSession
+            )
+            JOIN (
+                SELECT PatientId, LeftHand, IthSession, AssessmentId
+                FROM (
+                    SELECT S.PatientId, A.LeftHand, A.AssessmentId,
+                           ROW_NUMBER() OVER (PARTITION BY S.PatientId, A.LeftHand, A.TaskType ORDER BY AssessmentId ASC) AS IthSession
+                    FROM Assessment AS A
+                    JOIN Session AS S USING(SessionId)
+                )
+            ) USING(PatientId, LeftHand, IthSession)
+        ''')
+
         # Create result tables which store result results for each session/hand combination for a particular assessment
         combined_session_result_stmt_joins = ''
         for mode, evaluator in metric_evaluator_for_mode.items():
@@ -73,60 +99,42 @@ class DataProcessor:
 
             create_result_table_query = f'''
                 CREATE TABLE "{Tables.Results[mode]}" (
-                    "Id" integer primary key not null,
-                    "SessionId" integer not null,
-                    "IthSession" integer not null,
-                    "LeftHand" integer not null,
-                    "AssessmentId" integer,
-                    {self.result_cols[mode]},
-                    UNIQUE("SessionId", "LeftHand")
+                    "AssessmentId" integer primary key not null,
+                    {self.result_cols[mode]}
                 )
             '''
             self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_query)
-            self.migrator.create_or_update_table_index_or_view_from_stmt(f'CREATE INDEX {Tables.Results[mode]}_IthSession '
-                                                                         f'ON {Tables.Results[mode]} (IthSession)')
-
-            create_result_table_view_stmt = f'''
-                CREATE VIEW "{Tables.Results[mode]}Full" AS
-                    SELECT P.PatientId, R.LeftHand, R.IthSession, MIN(S.SessionStartTime) AS FirstSessionStartTime, {f", ".join(self.metric_col_names_for_mode[mode])}
-                    FROM {Tables.Results[mode]} AS R
-                    JOIN Session AS S USING(SessionId)
-                    JOIN Patient AS P USING(PatientId)
-                    GROUP BY P.PatientId, R.LeftHand, R.IthSession
-                    ORDER BY P.PatientId, R.LeftHand, R.IthSession
-            '''
-            self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_view_stmt)
-            combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]}Full USING(PatientId, LeftHand, IthSession)\n'
+            combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]} USING(AssessmentId)\n'
         return combined_session_result_stmt_joins
 
     def create_result_views(self, combined_session_result_stmt_joins: str):
         all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values() for name in metric_col_names]
-        metric_names = f', '.join(all_metric_col_names)
+        metric_names = f', '.join(f'MAX({metric}) AS {metric}' for metric in all_metric_col_names)
         null_checks = f' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
         patient_columns = self.migrator.out_get_all_columns_except(Tables.Patient, ('SubjectNr', 'PatientId'))
 
         session_result_view_name = 'SessionResult'
         create_combined_session_result_stmt = f'''
             CREATE VIEW {session_result_view_name} AS
-                SELECT P.SubjectNr, P.PatientId, LeftHand, IthSession,
+                SELECT P.SubjectNr, PS.PatientId, PS.LeftHand, PS.IthSession, PS.PseudoStartTime,
                     {f", ".join([f"P.{patient_column}" for patient_column in patient_columns])},
                     {metric_names}
-                FROM Patient AS P
-                JOIN (SELECT 0 AS LeftHand UNION ALL SELECT 1)
-                JOIN (SELECT 1 AS IthSession {f" ".join([f"UNION ALL SELECT {i}" for i in range(2, 11)])})
+                FROM PseudoSession AS PS
+                JOIN Patient AS P USING(PatientId)
                 {combined_session_result_stmt_joins}
                 WHERE {null_checks}
-                ORDER BY P.SubjectNr, LeftHand, IthSession
+                GROUP BY P.PatientId, PS.LeftHand, PS.IthSession
+                ORDER BY P.SubjectNr, PS.LeftHand, PS.IthSession
         '''
         self.migrator.create_or_update_table_index_or_view_from_stmt(create_combined_session_result_stmt)
-        study_cfg.create_additional_views(self.migrator, metric_names)
+        study_cfg.create_additional_views(self.migrator, f', '.join(all_metric_col_names))
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
         # Retrieve all completed assessments which are currently marked as a result of a session
         old_row_factory = self.in_conn.row_factory
         self.in_conn.row_factory = sqlite3.Row
         data_query = f'''
-                SELECT S.*, P.SubjectNr, A.AssessmentId, A.TaskType, A.LeftHand, strftime('%Y%m%d_%H%M%S', A.StartTime) AS FmtStartTime 
+                SELECT S.*, P.SubjectNr, A.AssessmentId, A.TaskType, A.LeftHand, strftime('%Y%m%d_%H%M%S', A.StartTime) AS FmtStartTime
                 FROM {Tables.Session} AS S
                 JOIN {Tables.Patient} AS P USING(PatientId)
                 JOIN {Tables.Assessment} AS A USING(SessionId)
@@ -196,8 +204,7 @@ class DataProcessor:
             # Workaround for missing automatic passive results in rom task (add dummy entries assuming same number of trials as active and passive)
             if mode == Modes.RangeOfMotion:
                 db_trial_results += [{'RomMode': 2} for _ in range(len(db_trial_results) // 2)]
-            todo_assessments.setdefault(mode, []).append(
-                (path, db_trial_results, assessment['SessionId'], ith_session_for_assessment, assessment_id, task_type, left_hand))
+            todo_assessments.setdefault(mode, []).append((path, db_trial_results, assessment_id, task_type, left_hand))
         del assessments_for_userhandmode
         self.in_conn.row_factory = old_row_factory
 
@@ -211,24 +218,21 @@ class DataProcessor:
                         results = list(map(self._process, assessments))
 
                     # Store metrics in output database
-                    insert_placeholder = f"(:SessionId, :IthSession, :LeftHand, :AssessmentId, {f', '.join([f':{name}' for name in self.metric_col_names_for_mode[mode]])})"
+                    insert_placeholder = f"(:AssessmentId, {f', '.join([f':{name}' for name in self.metric_col_names_for_mode[mode]])})"
                     metric_column_names = f', '.join(self.metric_col_names_for_mode[mode])
-                    insert_stmt = f'INSERT OR REPLACE INTO "{Tables.Results[mode]}" (SessionId, IthSession, LeftHand, AssessmentId, {metric_column_names}) VALUES {insert_placeholder}'
+                    insert_stmt = f'INSERT OR REPLACE INTO "{Tables.Results[mode]}" (AssessmentId, {metric_column_names}) VALUES {insert_placeholder}'
                     self.out_conn.executemany(insert_stmt, results)
         # Commit transaction (write everything to db file)
         self.out_conn.commit()
 
     @staticmethod
-    def _process(args: Tuple[str, List[Dict[str, Any]], int, int, int, int, bool]):
+    def _process(args: Tuple[str, List[Dict[str, Any]], int, int, bool]):
         """Compute metric values for an assessment and return as dict"""
 
-        path, trial_results_from_db, session_id, ith_assessment, assessment_id, task_type, left_hand = args
+        path, trial_results_from_db, assessment_id, task_type, left_hand = args
         assessment_results = process_tdms(path, left_hand, task_type, trial_results_from_db)
 
         entry = {
-            'SessionId': session_id,
-            'IthSession': ith_assessment,
-            'LeftHand': left_hand,
             'AssessmentId': assessment_id
         }
         entry.update(assessment_results)

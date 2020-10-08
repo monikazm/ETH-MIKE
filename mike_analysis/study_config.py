@@ -21,7 +21,7 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
 
         def create_redcap_view(view_name, impairedness_match_column):
             return f'''
-                CREATE VIEW {view_name} AS
+                CREATE VIEW "{view_name}" AS
                     SELECT ROW_NUMBER() OVER (PARTITION BY {REDCAP_RECORD_IDENTIFIER} ORDER BY robotic_session_number ASC) AS IthSession, *
                     FROM RoboticAssessment
                     LEFT JOIN ClinicalAssessment USING({REDCAP_RECORD_IDENTIFIER}, redcap_event_name)
@@ -34,13 +34,16 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
         migrator.create_or_update_table_index_or_view_from_stmt(create_redcap_view(non_impaired_view_name, 'measured_hand___2'))
 
         def create_full_data_view(view_name, redcap_view, impairedness_cond):
-            redcap_view_cols = f",\n".join([f'V.{col}' for col in migrator.out_get_all_columns_except(redcap_view, [REDCAP_RECORD_IDENTIFIER, 'IthSession'])])
+            redcap_view_cols = f",\n".join([f'V.{col}' for col in
+                                            migrator.out_get_all_columns_except(redcap_view, [REDCAP_RECORD_IDENTIFIER, 'redcap_event_name',
+                                                                                              'redcap_repeat_instance', 'IthSession'])])
             return f'''
-            CREATE VIEW {view_name} AS
-                SELECT R.SubjectNr, R.PatientId, R.LeftHand, D.{REDCAP_RECORD_IDENTIFIER}, R.IthSession,
+            CREATE VIEW "{view_name}" AS
+                SELECT R.SubjectNr, R.LeftHand, R.IthSession, R.PseudoStartTime AS SessionStartDate,
+                    D.{REDCAP_RECORD_IDENTIFIER}, V.redcap_event_name, V.redcap_repeat_instance,
                     {f", ".join([f"R.{patient_column}" for patient_column in patient_cols])},
                     {f", ".join([f"D.{demo_col}" for demo_col in demo_cols])},
-                    {redcap_view_cols}
+                    {redcap_view_cols},
                     {metric_names}
                 FROM SessionResult AS R
                 LEFT JOIN Demographics AS D ON(D.subject_code == R.SubjectNr)
@@ -60,7 +63,7 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
 
         name = 'DataFull'
         create_stmt = f'''
-            CREATE VIEW {name} AS
+            CREATE VIEW "{name}" AS
                 SELECT *
                 FROM {data_impaired_view_name}
                 UNION ALL

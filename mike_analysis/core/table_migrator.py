@@ -68,9 +68,10 @@ class TableMigrator:
             else:
                 self.out_conn.execute(create_elem_stmt_in)
 
-    def migrate_table_data(self, table_name: str):
+    def migrate_table_data(self, table_name: str, filter_cond: str = ''):
         entries = self.in_conn.execute(f'''
                 SELECT * FROM {table_name}
+                {(f"WHERE {filter_cond}" if filter_cond else "")}
         ''').fetchall()
         if entries:
             placeholder = f"({', '.join(['?' for _ in entries[0]])})"
