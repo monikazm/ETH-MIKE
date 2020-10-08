@@ -22,17 +22,6 @@ patients <- dbGetQuery(conn = con, "SELECT *
                                     FROM Patient AS P
                                     JOIN Demographics AS D ON(P.SubjectNr == D.subject_code)")
 
-# Metrics for single task
-force_metrics <- dbGetQuery(conn = con, "SELECT *
-                                         FROM ForceResultFull")
-# "", pre-joined with patient data
-force_metrics_w_patient <- dbGetQuery(conn = con, "SELECT *
-                                                   FROM ForceResultFull
-                                                   JOIN Patient AS P USING(PatientId)
-                                                   JOIN Demographics AS D ON(P.SubjectNr == D.subject_code)")
-# Perform a join in R instead of SQL
-force_metrics_w_patient_v2 <- merge(force_metrics, patients, by = "PatientId")
-
 # All Metrics pre-joined with patient data
 session_results <- dbGetQuery(conn = con, "SELECT *
                                            FROM SessionResult")
