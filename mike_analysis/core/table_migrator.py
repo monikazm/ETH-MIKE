@@ -19,11 +19,11 @@ class TableMigrator:
         entries = self.out_conn.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name IN ({','.join(['?']*len(table_names))})", table_names).fetchall()
         return len(entries) == len(table_names)
 
-    def migrate_table_index_or_view(self, element_name: str):
+    def migrate_table_index_or_view(self, element_name: str, overwrite: bool = False):
         create_stmt = self.get_original_create_stmt(element_name, self.in_conn).replace('autoincrement', '')
-        self.create_or_update_table_index_or_view_from_stmt(create_stmt)
+        self.create_or_update_table_index_or_view_from_stmt(create_stmt, overwrite)
 
-    def create_or_update_table_index_or_view_from_stmt(self, create_stmt: str):
+    def create_or_update_table_index_or_view_from_stmt(self, create_stmt: str, overwrite: bool = False):
         create_elem_stmt_in = re.sub(r'\s+', ' ', create_stmt.strip())
 
         match = self.extract_type_pattern.search(create_elem_stmt_in)
@@ -34,12 +34,12 @@ class TableMigrator:
 
         create_elem_stmt_out = re.sub(r'\s+', ' ', self.get_original_create_stmt(element_name.replace('"', ''), self.out_conn).strip())
 
-        if create_elem_stmt_in != create_elem_stmt_out:
+        if create_elem_stmt_in != create_elem_stmt_out or overwrite:
             print(f'Updated {element_name}')
             if create_elem_stmt_out != '':
                 with self.out_conn: # Create transaction
                     self.out_conn.execute('BEGIN TRANSACTION;')
-                    if kind == 'TABLE':
+                    if kind == 'TABLE' and not overwrite:
                         # Create temporary table with same schema as original table
                         create_tmp_table = create_elem_stmt_out.replace(match.group(0), 'CREATE TEMP TABLE tmp_migration')
                         self.out_conn.execute(create_tmp_table)

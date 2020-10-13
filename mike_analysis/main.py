@@ -8,7 +8,7 @@ import pandas as pd
 
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.data_processor import DataProcessor
-from mike_analysis.core.constants import Tables, time_measured
+from mike_analysis.core.constants import Tables, time_measured, AssessmentState
 from mike_analysis.core.redcap_importer import RedcapImporter
 from mike_analysis.core.table_migrator import TableMigrator
 
@@ -30,17 +30,17 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         migrator = TableMigrator(in_conn, out_conn)
 
         # Copy patient, session and completed assessment data from input database
-        migrator.migrate_table_index_or_view(Tables.Patient)
+        migrator.migrate_table_index_or_view(Tables.Patient, overwrite=True)
         migrator.migrate_table_index_or_view(f'{Tables.Patient}_SubjectNr')
         migrator.migrate_table_data(Tables.Patient)
 
-        migrator.migrate_table_index_or_view(Tables.Session)
+        migrator.migrate_table_index_or_view(Tables.Session, overwrite=True)
         migrator.migrate_table_index_or_view(f'{Tables.Session}_PatientId')
         migrator.migrate_table_data(Tables.Session)
 
-        migrator.migrate_table_index_or_view(f'{Tables.Assessment}')
+        migrator.migrate_table_index_or_view(f'{Tables.Assessment}', overwrite=True)
         migrator.migrate_table_index_or_view(f'{Tables.Assessment}_SessionId')
-        migrator.migrate_table_data(Tables.Assessment, 'State == 3 AND IsTrialRun IS NOT TRUE')
+        migrator.migrate_table_data(Tables.Assessment, f'State == {AssessmentState.Finished} AND IsTrialRun IS FALSE')
 
         # Import data from redcap if enabled
         if cfg.REDCAP_IMPORT:

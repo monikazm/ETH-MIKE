@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 from numpy.testing import assert_equal, assert_almost_equal
 
-from mike_analysis.core.file_processor import _read_tdms_file, preprocess_and_split_trials
+from mike_analysis.core.file_processing import _read_tdms_file, preprocess_and_split_trials
 from mike_analysis.core.constants import RomPhase
 from mike_analysis.precomputers.derivatives import AbsVelocity, Velocity
 from mike_analysis.tests import test_data_folder

@@ -1,5 +1,8 @@
 # Extract trial data from tdms
+import os
+import shutil
 from typing import List, Any
+from zipfile import ZipFile
 
 import pandas as pd
 from nptdms import TdmsFile
@@ -11,18 +14,38 @@ from mike_analysis.evaluators import *
 from mike_analysis.precomputers.base_values import SamplingRate
 
 
-def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_from_db: List[Dict[str, Any]]) -> Dict:
-    evaluator = metric_evaluator_for_mode[Modes(task_type)]
-    precomputed_dependencies = evaluator.get_precompute_dependencies()
-    col_deps, normal_deps = [], []
-    for dep in precomputed_dependencies:
-        if isinstance(dep, ColumnPrecomputer):
-            col_deps.append(dep)
-        else:
-            normal_deps.append(dep)
+def search_and_extract_tdms_from_zips(zip_dir, session_id, rel_path, output_path) -> bool:
+    if os.path.exists(zip_dir):
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        files = [os.path.join(zip_dir, file) for file in os.listdir(zip_dir) if file.startswith(f'sid_{session_id}_')]
+        rel_path = rel_path.replace('\\', '/')
+        for file in sorted(files, reverse=True):
+            try:
+                with ZipFile(file, 'r') as f:
+                    if rel_path in f.namelist():
+                        with f.open(rel_path) as i, open(output_path, 'wb') as o:
+                            shutil.copyfileobj(i, o)
+                        try:
+                            with f.open(f'{rel_path}_index') as i, open(f'{output_path}_index', 'wb') as o:
+                                shutil.copyfileobj(i, o)
+                        except FileNotFoundError as e:
+                            print(f'WARN: tdms_index file missing from archive\n{e}')
+                        return True
+            except Exception as e:
+                print(f'Error while reading zip file {file}\n{e}')
+    return False
 
+
+def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_from_db: List[Dict[str, Any]]) -> Dict:
+    mode = Modes(task_type)
+    evaluator = metric_evaluator_for_mode[mode]
+    col_deps, normal_deps = required_precomputations_for_mode[mode]
+
+    # Read and preprocess tdms file
     tdms_data = _read_tdms_file(filename)
     tdms_trials = preprocess_and_split_trials(tdms_data, left_hand, col_deps)
+
+    # Precompute ValuePrecomputers and build precompute dicts for each trial
     precomputed_vals = [{} for _ in tdms_trials]
     if normal_deps or col_deps:
         for trial_data, precomputed_vals_for_trial in zip(tdms_trials, precomputed_vals):
@@ -30,7 +53,10 @@ def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_f
                 precomputed_vals_for_trial[dependency] = trial_data[dependency.col_name]
             for dependency in normal_deps:
                 dependency.precompute_for(trial_data, precomputed_vals_for_trial)
-    return evaluator.compute_assessment_metrics(tdms_trials, precomputed_vals, trial_results_from_db)
+
+    # Compute metrics
+    computed_metrics = evaluator.compute_assessment_metrics(tdms_trials, precomputed_vals, trial_results_from_db)
+    return computed_metrics
 
 
 def _read_tdms_file(filename: str):
