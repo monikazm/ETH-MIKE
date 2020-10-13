@@ -46,9 +46,6 @@ class MetricEvaluator(metaclass=ABCMeta):
         col_name_and_types += [(f'{metric.name}', metric.d_type, metric.bigger_is_better, metric.unit) for metric in self.diff_metrics]
         return [(f'{self.name_prefix}_{name}', d_type, big_is_better, unit) for name, d_type, big_is_better, unit in col_name_and_types]
 
-    def compute_trial_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowType]) -> AllMetricsTrialValues:
-        return [metric.compute(all_trials, precomputed_vals, db_results) for metric in self.trial_metrics]
-
     def compute_assessment_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowType]) -> Dict[str, Scalar]:
         result_dict = {}
 
@@ -64,21 +61,23 @@ class MetricEvaluator(metaclass=ABCMeta):
                 result_dict.update(series_computer.compute_assessment_metrics(series_raw_trials, series_precomputed, series_db_results))
 
         # Compute trial metrics
-        data = pd.DataFrame.from_dict(dict(self.compute_trial_metrics(all_trials, precomputed_vals, db_results)))
+        metric_values_for_trials = pd.DataFrame({metric.name: metric.compute_for_all_trials(all_trials, precomputed_vals, db_results)
+                                                 for metric in self.trial_metrics})
 
         # Compute aggregate metrics
-        for aggregator_metric in self.aggregator_metrics:
-            aggregator_metric.compute_and_store_in_result_dict(result_dict, data)
+        for aggregate_metric in self.aggregator_metrics:
+            aggregate_metric_value_dict = aggregate_metric.compute_for_all_metrics(metric_values_for_trials)
+            result_dict.update(aggregate_metric_value_dict)
 
         # Compute summary metric
-        for metric in self.summary_metrics:
-            name, value = metric.compute(all_trials, precomputed_vals, db_results)
-            result_dict[name] = value
+        for summary_metric in self.summary_metrics:
+            value = summary_metric.compute_across_trials(all_trials, precomputed_vals, db_results)
+            result_dict[summary_metric.name] = value
 
         # Compute diff metrics
-        for metric in self.diff_metrics:
-            name, value = metric.compute(result_dict)
-            result_dict[name] = value
+        for diff_metric in self.diff_metrics:
+            value = diff_metric.compute_from_results(result_dict)
+            result_dict[diff_metric.name] = value
 
         # Append prefix to name
         return {f'{self.name_prefix}_{metric_name}': metric_value for metric_name, metric_value in result_dict.items()}

@@ -29,7 +29,7 @@ class Mean(AggregateMetric):
     def bigger_is_better(self, single_metric: TrialMetric) -> bool:
         return single_metric.bigger_is_better
 
-    def compute_metric(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
+    def compute_aggregate_across_trials(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
         return all_metric_trial_values.mean(axis=0)
 
 
@@ -38,8 +38,8 @@ class MeanTop3(Mean):
     name = f'MeanTop3'
     smaller_is_better_cols: Iterable[str] = ()
 
-    def compute_metric(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
-        return compute_top_n_aggregate(all_metric_trial_values, 3, self.smaller_is_better_cols, super().compute_metric)
+    def compute_aggregate_across_trials(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
+        return compute_top_n_aggregate(all_metric_trial_values, 3, self.smaller_is_better_cols, super().compute_aggregate_across_trials)
 
 
 @dataclass
@@ -49,7 +49,7 @@ class StdDev(AggregateMetric):
     def bigger_is_better(self, single_metric: TrialMetric) -> bool:
         return False
 
-    def compute_metric(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
+    def compute_aggregate_across_trials(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
         return all_metric_trial_values.std(axis=0)
 
 
@@ -58,5 +58,5 @@ class StdDevTop3(StdDev):
     name = 'StdTop3'
     smaller_is_better_cols: Iterable[str] = ()
 
-    def compute_metric(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
-        return compute_top_n_aggregate(all_metric_trial_values, 3, self.smaller_is_better_cols, super().compute_metric)
+    def compute_aggregate_across_trials(self, all_metric_trial_values: pd.DataFrame) -> pd.Series:
+        return compute_top_n_aggregate(all_metric_trial_values, 3, self.smaller_is_better_cols, super().compute_aggregate_across_trials)
