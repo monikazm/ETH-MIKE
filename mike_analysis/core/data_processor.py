@@ -11,7 +11,7 @@ import pandas as pd
 import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.file_processor import process_tdms
-from mike_analysis.core.meta import Tables, AssessmentState, Modes, ModeDescs, time_measured
+from mike_analysis.core.constants import Tables, AssessmentState, Modes, ModeDescs, time_measured
 from mike_analysis.core.table_migrator import TableMigrator
 from mike_analysis.evaluators import metric_evaluator_for_mode
 
@@ -65,6 +65,23 @@ class DataProcessor:
         self.out_conn.commit()
 
     def create_result_tables(self):
+        # Create result tables which store result results for each session/hand combination for a particular assessment
+        combined_session_result_stmt_joins = ''
+        for mode, evaluator in metric_evaluator_for_mode.items():
+            if mode.name not in cfg.IMPORT_ASSESSMENTS:
+                continue
+
+            create_result_table_query = f'''
+                CREATE TABLE "{Tables.Results[mode]}" (
+                    "AssessmentId" integer primary key not null,
+                    {self.result_cols[mode]}
+                )
+            '''
+            self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_query)
+            combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]} USING(AssessmentId)\n'
+        return combined_session_result_stmt_joins
+
+    def create_result_views(self, combined_session_result_stmt_joins: str):
         # Create Pseudo Session View
         self.migrator.create_or_update_table_index_or_view_from_stmt('''
             CREATE VIEW "PseudoSession" AS
@@ -91,23 +108,6 @@ class DataProcessor:
             ) USING(PatientId, LeftHand, IthSession)
         ''')
 
-        # Create result tables which store result results for each session/hand combination for a particular assessment
-        combined_session_result_stmt_joins = ''
-        for mode, evaluator in metric_evaluator_for_mode.items():
-            if mode.name not in cfg.IMPORT_ASSESSMENTS:
-                continue
-
-            create_result_table_query = f'''
-                CREATE TABLE "{Tables.Results[mode]}" (
-                    "AssessmentId" integer primary key not null,
-                    {self.result_cols[mode]}
-                )
-            '''
-            self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_query)
-            combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]} USING(AssessmentId)\n'
-        return combined_session_result_stmt_joins
-
-    def create_result_views(self, combined_session_result_stmt_joins: str):
         all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values() for name in metric_col_names]
         metric_names = f', '.join(f'MAX({metric}) AS {metric}' for metric in all_metric_col_names)
         null_checks = f' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)

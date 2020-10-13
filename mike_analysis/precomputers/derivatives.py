@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import filtfilt
 
-from mike_analysis.core.meta import TimeCol, ForceCol, PosCol
+from mike_analysis.core.constants import TimeCol, ForceCol, PosCol
 from mike_analysis.core.precomputer import ColumnPrecomputer, PrecomputeDict
 from mike_analysis.precomputers.base_values import SamplingRate
 

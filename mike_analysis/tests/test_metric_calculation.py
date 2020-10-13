@@ -4,7 +4,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
-from mike_analysis.core.meta import TimeCol, PosCol, ForceCol
+from mike_analysis.core.constants import TimeCol, PosCol, ForceCol
 from mike_analysis.metrics.motor import MaxVelocity, MAPR, MaxForce, NIJ
 from mike_analysis.precomputers.derivatives import AbsVelocity
 

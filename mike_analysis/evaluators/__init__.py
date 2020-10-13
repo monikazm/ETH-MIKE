@@ -1,6 +1,6 @@
 from typing import Dict
 
-from mike_analysis.core.meta import Modes as _Modes
+from mike_analysis.core.constants import Modes as _Modes
 from mike_analysis.core.metric_evaluator import MetricEvaluator as _MetricEvaluator
 
 from .rom import RomEvaluator

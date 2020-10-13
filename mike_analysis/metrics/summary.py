@@ -4,7 +4,7 @@ from typing import List
 
 import pandas as pd
 
-from mike_analysis.core.meta import SPosCol, PosCol, TPosCol
+from mike_analysis.core.constants import SPosCol, PosCol, TPosCol
 from mike_analysis.core.metric import RowType, Scalar, SummaryMetric, DTypes
 from mike_analysis.core.precomputer import PrecomputeDict
 

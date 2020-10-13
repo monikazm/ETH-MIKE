@@ -9,7 +9,7 @@ from scipy.signal import filtfilt
 
 #import matplotlib.pyplot as plt
 
-from mike_analysis.core.meta import PosCol, TimeCol, ForceCol
+from mike_analysis.core.constants import PosCol, TimeCol, ForceCol
 from mike_analysis.core.precomputer import Precomputer
 from mike_analysis.precomputers.base_values import SamplingRate
 from mike_analysis.precomputers.derivatives import AbsVelocity, ForceDerivative, Jerk, Velocity

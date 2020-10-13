@@ -8,7 +8,7 @@ import pandas as pd
 
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.data_processor import DataProcessor
-from mike_analysis.core.meta import Tables, time_measured
+from mike_analysis.core.constants import Tables, time_measured
 from mike_analysis.core.redcap_importer import RedcapImporter
 from mike_analysis.core.table_migrator import TableMigrator
 

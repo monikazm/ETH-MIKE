@@ -5,7 +5,7 @@ import pandas as pd
 from nptdms import TdmsFile
 from scipy.signal import filtfilt
 
-from mike_analysis.core.meta import tdms_cols, col_names, Modes, TrialCol, RStateCol, TimeCol, ForceCol, PosCol, SPosCol, TPosCol, TSCol
+from mike_analysis.core.constants import tdms_cols, col_names, Modes, TrialCol, RStateCol, TimeCol, ForceCol, PosCol, SPosCol, TPosCol, TSCol
 from mike_analysis.core.precomputer import Precomputer, ColumnPrecomputer
 from mike_analysis.evaluators import *
 from mike_analysis.precomputers.base_values import SamplingRate

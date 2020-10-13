@@ -2,7 +2,7 @@ import os
 import importlib.util
 from pathlib import Path
 
-from mike_analysis.core.meta import Modes
+from mike_analysis.core.constants import Modes
 
 __this_folder = Path(os.path.dirname(os.path.realpath(__file__)))
 with open(os.path.join(__this_folder, 'config.py.template')) as file:

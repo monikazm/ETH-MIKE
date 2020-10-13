@@ -7,7 +7,7 @@ import pandas as pd
 
 import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
-from mike_analysis.core.meta import SqlTypes, time_measured
+from mike_analysis.core.constants import SqlTypes, time_measured
 from mike_analysis.core.redcap_api import RedCap
 from mike_analysis.core.table_migrator import TableMigrator
 

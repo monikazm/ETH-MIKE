@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from mike_analysis.core.meta import ForceCol, PosCol, SPosCol, TimeCol
+from mike_analysis.core.constants import ForceCol, PosCol, SPosCol, TimeCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 from mike_analysis.precomputers.derivatives import AbsVelocity, Jerk

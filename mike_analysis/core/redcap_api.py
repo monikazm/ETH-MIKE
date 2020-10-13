@@ -4,7 +4,7 @@ from typing import Dict, Tuple, List, Set, Optional
 import pandas as pd
 import requests
 
-from mike_analysis.core.meta import SqlTypes
+from mike_analysis.core.constants import SqlTypes
 
 FAKE_DATA = False
 

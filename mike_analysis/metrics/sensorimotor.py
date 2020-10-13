@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import scipy.signal as sig
 
-from mike_analysis.core.meta import PosCol, TPosCol, TimeCol
+from mike_analysis.core.constants import PosCol, TPosCol, TimeCol
 from mike_analysis.core.metric import TrialMetric, RowType, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 
