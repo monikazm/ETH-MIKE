@@ -21,44 +21,41 @@ class DataProcessor:
         self.in_conn: sqlite3.Connection = in_conn
         self.out_conn: sqlite3.Connection = out_conn
         self.migrator = migrator
-        self.metric_col_names_for_mode = {}
-        self.result_cols = {}
+        self.metric_meta = {mode: metric_evaluator_for_mode[mode].get_result_column_names_and_info()
+                            for mode in metric_evaluator_for_mode if mode.name in cfg.IMPORT_ASSESSMENTS}
+        self.metric_col_names_for_mode = {mode: [meta[0] for meta in self.metric_meta[mode]] for mode in self.metric_meta}
 
-        metric_meta = []
-        for mode, evaluator in metric_evaluator_for_mode.items():
-            if mode.name not in cfg.IMPORT_ASSESSMENTS:
-                continue
-            name_and_info = evaluator.get_result_column_names_and_info()
-            self.metric_col_names_for_mode[mode] = [name for name, _, _, _ in name_and_info]
-            self.result_cols[mode] = f',\n'.join([f'"{name}" {type_name}' for name, type_name, _, _ in name_and_info])
-            metric_meta += [(name, mode, bigger_is_better, unit) for name, _, bigger_is_better, unit in name_and_info]
-
+    def create_metric_info_table(self):
         # Create metric meta table
         additional_columns = ('HealthyAvg', 'SrdImpaired', 'SrdNonImpaired')
         create_stmt = '''
-            CREATE TABLE "MetricInfo" (
-                "Id" integer primary key not null,
-                "Name" varchar not null UNIQUE,
-                "TaskType" integer not null,
-                "BiggerIsBetter" integer not null,
-                "Unit" varchar not null,
-            ''' + ',\n'.join([f'"{col}" numeric' for col in additional_columns]) + ')'
+                    CREATE TABLE "MetricInfo" (
+                        "Id" integer primary key not null,
+                        "Name" varchar not null UNIQUE,
+                        "TaskType" integer not null,
+                        "BiggerIsBetter" integer not null,
+                        "Unit" varchar not null,
+                    ''' + ',\n'.join([f'"{col}" numeric' for col in additional_columns]) + ')'
         self.migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         # Insert metric metadata
         self.out_conn.executemany('INSERT OR IGNORE INTO "MetricInfo" (Name, TaskType, BiggerIsBetter, Unit) '
-                                  'VALUES (?, ?, ?, ?)', metric_meta)
+                                  'VALUES (?, ?, ?, ?)', [val for vals in self.metric_meta.values() for val in vals])
 
+        # Read optional healthy avg and Srds from csv file in current working directory
+        # (If not defined for a metric, it will remain NULL in the database)
+        # Note: With the current implementation, if there are already SRD values or healthy avg stored in the analysis database,
+        # they will not be overwritten with values from csv
         if os.path.exists('metric_metadata_defaults.csv'):
             try:
                 mdata = pd.read_csv('metric_metadata_defaults.csv')
                 data_dict = mdata.to_dict(orient='records')
                 for meta_info in additional_columns:
                     self.out_conn.executemany(f'''
-                        UPDATE "MetricInfo"
-                        SET "{meta_info}" = :{meta_info}
-                        WHERE Name == :MetricName AND "{meta_info}" IS NULL
-                    ''', data_dict)
+                                UPDATE "MetricInfo"
+                                SET "{meta_info}" = :{meta_info}
+                                WHERE Name == :MetricName AND "{meta_info}" IS NULL
+                            ''', data_dict)
             except Exception as e:
                 print(f'Failed to process metadata defaults file\n{e}')
 
@@ -71,10 +68,11 @@ class DataProcessor:
             if mode.name not in cfg.IMPORT_ASSESSMENTS:
                 continue
 
+            result_cols_defs = f',\n'.join([f'"{name}" {type_name}' for name, type_name, _, _ in self.metric_meta[mode]])
             create_result_table_query = f'''
                 CREATE TABLE "{Tables.Results[mode]}" (
                     "AssessmentId" integer primary key not null,
-                    {self.result_cols[mode]}
+                    {result_cols_defs}
                 )
             '''
             self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_query)

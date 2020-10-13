@@ -52,6 +52,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
 
         # Import all data, compute metrics and store results in analysis database
         processor = DataProcessor(in_conn, out_conn, migrator)
+        processor.create_metric_info_table()
         with time_measured('result table creation'):
             combined_session_result_stmt_joins = processor.create_result_tables()
             processor.create_result_views(combined_session_result_stmt_joins)
