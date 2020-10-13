@@ -33,7 +33,7 @@ class FastReachingEvaluator(MetricEvaluator):
     name_prefix: str = 'FastReaching'
     db_result_columns_to_select = ('Flexion', )
 
-    series_metric_computers = (
+    series_metric_evaluators = (
         _FastReachingSeriesEvaluator('Extension'),
         _FastReachingSeriesEvaluator('Flexion'),
     )

@@ -23,7 +23,7 @@ class ForceEvaluator(MetricEvaluator):
     name_prefix: str = 'Force'
     db_result_columns_to_select = ('Flexion', )
 
-    series_metric_computers = (
+    series_metric_evaluators = (
         _ForceSeriesEvaluator('Extension'),
         _ForceSeriesEvaluator('Flexion'),
     )

@@ -28,7 +28,7 @@ class PreciseReachingEvaluator(MetricEvaluator):
         f'CASE LeftHand WHEN 1 THEN {target_col} ELSE -{target_col} END AS {target_col}',
         f'CASE LeftHand WHEN 1 THEN {actual_col} ELSE -{actual_col} END AS {actual_col}',
     )
-    series_metric_computers = (
+    series_metric_evaluators = (
         _PreciseReachingSeriesEvaluator('Extension'),
         _PreciseReachingSeriesEvaluator('Flexion'),
     )

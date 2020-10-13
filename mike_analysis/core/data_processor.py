@@ -21,7 +21,7 @@ class DataProcessor:
         self.in_conn: sqlite3.Connection = in_conn
         self.out_conn: sqlite3.Connection = out_conn
         self.migrator = migrator
-        self.metric_meta = {mode: metric_evaluator_for_mode[mode].get_result_column_names_and_info()
+        self.metric_meta = {mode: metric_evaluator_for_mode[mode].get_result_column_info()
                             for mode in metric_evaluator_for_mode if mode.name in cfg.IMPORT_ASSESSMENTS}
         self.metric_col_names_for_mode = {mode: [meta[0] for meta in self.metric_meta[mode]] for mode in self.metric_meta}
 

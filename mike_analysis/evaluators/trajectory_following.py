@@ -30,7 +30,7 @@ class TrajectoryFollowingEvaluator(MetricEvaluator):
     name_prefix: str = 'TrajectoryFollowing'
     db_result_columns_to_select = ('Fast', )
 
-    series_metric_computers = (
+    series_metric_evaluators = (
         _TrajectoryFollowingSeriesEvaluator('Slow'),
         _TrajectoryFollowingSeriesEvaluator('Fast'),
     )

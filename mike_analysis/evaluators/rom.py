@@ -36,7 +36,7 @@ class RomEvaluator(MetricEvaluator):
     name_prefix: str = 'Rom'
     db_result_columns_to_select = ('RomMode', )
 
-    series_metric_computers = (
+    series_metric_evaluators = (
         _RomActivePassiveSeriesEvaluator('Active'),
         _RomActivePassiveSeriesEvaluator('Passive'),
         _RomAutomaticPassiveSeriesEvaluator('Auto'),
