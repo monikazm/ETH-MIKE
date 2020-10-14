@@ -1,4 +1,5 @@
 # This file may need to be adapted for different studies with different redcap tables
+from mike_analysis.core.constants import RCCols
 from mike_analysis.core.table_migrator import TableMigrator
 
 REDCAP_RECORD_IDENTIFIER = 'study_id'
@@ -24,8 +25,8 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
                 CREATE VIEW "{view_name}" AS
                     SELECT ROW_NUMBER() OVER (PARTITION BY {REDCAP_RECORD_IDENTIFIER} ORDER BY robotic_session_number ASC) AS IthSession, *
                     FROM RoboticAssessment
-                    LEFT JOIN ClinicalAssessment USING({REDCAP_RECORD_IDENTIFIER}, redcap_event_name)
-                    LEFT JOIN Neurophysiology USING({REDCAP_RECORD_IDENTIFIER}, redcap_event_name)
+                    LEFT JOIN ClinicalAssessment USING({REDCAP_RECORD_IDENTIFIER}, {RCCols.EventName})
+                    LEFT JOIN Neurophysiology USING({REDCAP_RECORD_IDENTIFIER}, {RCCols.EventName})
                     WHERE {impairedness_match_column} IS TRUE
             '''
         impaired_view_name = 'ImpairedAssessment'
@@ -35,12 +36,12 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
 
         def create_full_data_view(view_name, redcap_view, impairedness_cond):
             redcap_view_cols = ",\n".join([f'V.{col}' for col in
-                                           migrator.out_get_all_columns_except(redcap_view, [REDCAP_RECORD_IDENTIFIER, 'redcap_event_name',
-                                                                                             'redcap_repeat_instance', 'IthSession'])])
+                                           migrator.out_get_all_columns_except(redcap_view, [REDCAP_RECORD_IDENTIFIER, RCCols.EventName,
+                                                                                             RCCols.RepeatInst, 'IthSession'])])
             return f'''
             CREATE VIEW "{view_name}" AS
                 SELECT R.SubjectNr, R.LeftHand, R.IthSession, R.PseudoStartTime AS SessionStartDate,
-                    D.{REDCAP_RECORD_IDENTIFIER}, V.redcap_event_name, V.redcap_repeat_instance,
+                    D.{REDCAP_RECORD_IDENTIFIER}, V.{RCCols.EventName}, V.{RCCols.RepeatInst},
                     {", ".join([f"R.{patient_column}" for patient_column in patient_cols])},
                     {", ".join([f"D.{demo_col}" for demo_col in demo_cols])},
                     {redcap_view_cols},

@@ -70,6 +70,12 @@ class Tables:
     Results = {m: f'{m.name}Result' for m in Modes}
 
 
+class RCCols:
+    EventName = 'redcap_event_name'
+    RepeatInstrument = 'redcap_repeat_instrument'
+    RepeatInst = 'redcap_repeat_instance'
+
+
 class TColor:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
