@@ -21,14 +21,12 @@ class RedcapImporter:
         self.rc = RedCap(api_url=cfg.REDCAP_URL, token=cfg.RECAP_API_TOKEN)
 
     def _create_redcap_table(self, columns, key_cols, table_name, table_indices):
-        redcap_column_defs = f',\n'.join([f'"{name}" {type_name}' for name, type_name in columns])
-        unique_constr = f'"{key_cols[0]}"'
-        for col in key_cols[1:]:
-            unique_constr += f', "{col}"'
+        redcap_column_defs = ',\n'.join([f'"{name}" {type_name}' for name, type_name in columns])
+        comma_separated_key_column_names = ', '.join(f'"{col}"' for col in key_cols)
         create_redcap_table_stmt = f'''
             CREATE TABLE "{table_name}" (
                 {redcap_column_defs},
-                PRIMARY KEY({unique_constr})
+                PRIMARY KEY({comma_separated_key_column_names})
             )
         '''
         self.migrator.create_or_update_table_index_or_view_from_stmt(create_redcap_table_stmt)
@@ -78,8 +76,8 @@ class RedcapImporter:
 
             records = form_data.values.tolist()
 
-            metric_column_names = f', '.join(all_col_names)
-            insert_placeholder = f"({f', '.join(['?' for _ in all_col_names])})"
+            metric_column_names = ', '.join(all_col_names)
+            insert_placeholder = f"({', '.join(['?' for _ in all_col_names])})"
             pretty_name = study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form][0]
             insert_stmt = f'INSERT OR REPLACE INTO "{pretty_name}" ({metric_column_names}) VALUES {insert_placeholder}'
             self.out_conn.executemany(insert_stmt, records)

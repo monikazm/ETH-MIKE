@@ -9,7 +9,7 @@ from nptdms import TdmsFile
 from scipy.signal import filtfilt
 
 from mike_analysis.core.constants import tdms_cols, col_names, Modes, TrialCol, RStateCol, TimeCol, ForceCol, PosCol, SPosCol, TPosCol, TSCol
-from mike_analysis.core.precomputer import Precomputer, ColumnPrecomputer
+from mike_analysis.core.precomputer import Precomputer
 from mike_analysis.evaluators import *
 from mike_analysis.precomputers.base_values import SamplingRate
 
@@ -83,7 +83,7 @@ def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_comp
     # Filter position signal
     b, a = Precomputer.get_filter(precomputed_cols[SamplingRate], fc=20.0, deg=2)
     pos_flt = filtfilt(b, a, data[PosCol]) if filter_position else data[PosCol]
-    data[PosCol] = pos_flt.clip(-90.0, 90.0)
+    data[PosCol] = pos_flt.clip(-90.0, 90.0) # Restrict position to [-90.0, 90.0] range
     #data[PosCol] = pos_flt
 
     # import matplotlib.pyplot as plt

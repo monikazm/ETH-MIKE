@@ -1,11 +1,8 @@
 import multiprocessing
 import os
-import shutil
 import sqlite3
 from collections import namedtuple
 from contextlib import nullcontext
-from typing import Dict, Tuple, List, Any
-from zipfile import ZipFile
 
 import pandas as pd
 
@@ -71,7 +68,7 @@ class DataProcessor:
             if mode.name not in cfg.IMPORT_ASSESSMENTS:
                 continue
 
-            result_cols_defs = f',\n'.join([f'"{name}" {type_name}' for name, type_name, _, _ in self.metric_meta[mode]])
+            result_cols_defs = ',\n'.join([f'"{name}" {type_name}' for name, type_name, _, _ in self.metric_meta[mode]])
             create_result_table_query = f'''
                 CREATE TABLE "{Tables.Results[mode]}" (
                     "AssessmentId" integer primary key not null,
@@ -110,15 +107,15 @@ class DataProcessor:
         ''')
 
         all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values() for name in metric_col_names]
-        metric_names = f', '.join(f'MAX({metric}) AS {metric}' for metric in all_metric_col_names)
-        null_checks = f' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
+        metric_names = ', '.join(f'MAX({metric}) AS {metric}' for metric in all_metric_col_names)
+        null_checks = ' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
         patient_columns = self.migrator.out_get_all_columns_except(Tables.Patient, ('SubjectNr', 'PatientId'))
 
         session_result_view_name = 'SessionResult'
         create_combined_session_result_stmt = f'''
             CREATE VIEW {session_result_view_name} AS
                 SELECT P.SubjectNr, PS.PatientId, PS.LeftHand, PS.IthSession, PS.PseudoStartTime,
-                    {f", ".join([f"P.{patient_column}" for patient_column in patient_columns])},
+                    {", ".join([f"P.{patient_column}" for patient_column in patient_columns])},
                     {metric_names}
                 FROM PseudoSession AS PS
                 JOIN Patient AS P USING(PatientId)
@@ -139,7 +136,7 @@ class DataProcessor:
             FROM {Tables.Session} AS S
             JOIN {Tables.Patient} AS P USING(PatientId)
             JOIN {Tables.Assessment} AS A USING(SessionId)
-            WHERE A.TaskType IN ({f", ".join([str(mode.value) for mode in enabled_modes])})
+            WHERE A.TaskType IN ({", ".join([str(mode.value) for mode in enabled_modes])})
             ORDER BY AssessmentId ASC
         '''
         data = self.out_conn.execute(assessment_query).fetchall()
@@ -147,7 +144,7 @@ class DataProcessor:
         # Prepare sql query string to retrieve data from result table for each mode
         result_table_query_for_mode = {
             mode: f'''
-                SELECT {f", ".join(metric_evaluator_for_mode[mode].db_result_columns_to_select)}
+                SELECT {", ".join(metric_evaluator_for_mode[mode].db_result_columns_to_select)}
                 FROM {Tables.Results[mode]} AS R
                 JOIN {Tables.Assessment} AS A USING(AssessmentId)
                 WHERE AssessmentId == ?
@@ -193,8 +190,8 @@ class DataProcessor:
                     results = map_(self._process_single_assessment, assessments)
 
                     # Store metrics in output database
-                    metric_column_placeholders = f', '.join([f':{name}' for name in self.metric_col_names_for_mode[mode]])
-                    metric_column_names = f', '.join(self.metric_col_names_for_mode[mode])
+                    metric_column_placeholders = ', '.join([f':{name}' for name in self.metric_col_names_for_mode[mode]])
+                    metric_column_names = ', '.join(self.metric_col_names_for_mode[mode])
                     insert_stmt = f'INSERT OR REPLACE INTO "{Tables.Results[mode]}" (AssessmentId, {metric_column_names}) ' \
                                   f'VALUES (:AssessmentId, {metric_column_placeholders})'
                     self.out_conn.executemany(insert_stmt, results)

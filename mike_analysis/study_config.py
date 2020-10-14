@@ -34,15 +34,15 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
         migrator.create_or_update_table_index_or_view_from_stmt(create_redcap_view(non_impaired_view_name, 'measured_hand___2'))
 
         def create_full_data_view(view_name, redcap_view, impairedness_cond):
-            redcap_view_cols = f",\n".join([f'V.{col}' for col in
-                                            migrator.out_get_all_columns_except(redcap_view, [REDCAP_RECORD_IDENTIFIER, 'redcap_event_name',
-                                                                                              'redcap_repeat_instance', 'IthSession'])])
+            redcap_view_cols = ",\n".join([f'V.{col}' for col in
+                                           migrator.out_get_all_columns_except(redcap_view, [REDCAP_RECORD_IDENTIFIER, 'redcap_event_name',
+                                                                                             'redcap_repeat_instance', 'IthSession'])])
             return f'''
             CREATE VIEW "{view_name}" AS
                 SELECT R.SubjectNr, R.LeftHand, R.IthSession, R.PseudoStartTime AS SessionStartDate,
                     D.{REDCAP_RECORD_IDENTIFIER}, V.redcap_event_name, V.redcap_repeat_instance,
-                    {f", ".join([f"R.{patient_column}" for patient_column in patient_cols])},
-                    {f", ".join([f"D.{demo_col}" for demo_col in demo_cols])},
+                    {", ".join([f"R.{patient_column}" for patient_column in patient_cols])},
+                    {", ".join([f"D.{demo_col}" for demo_col in demo_cols])},
                     {redcap_view_cols},
                     {metric_names}
                 FROM SessionResult AS R
