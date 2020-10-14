@@ -29,6 +29,11 @@ class MetricEvaluator(metaclass=ABCMeta):
     series_metric_evaluators: ClassVar[Tuple['MetricEvaluator', ...]] = ()
 
     def get_precompute_dependencies(self) -> OrderedDict[Precomputer, None]:
+        """
+        Get list of all precomputers required by any of the metrics in this evaluator or any of its sub (series) evaluators
+        :return: List of required precomputers (column and value precomputers)
+        """
+
         precompute_dependencies = collections.OrderedDict()
 
         # Include precompute requirements of sub series evaluators (if any)
@@ -42,6 +47,12 @@ class MetricEvaluator(metaclass=ABCMeta):
         return precompute_dependencies
 
     def get_result_column_info(self) -> List[Tuple[str, str, bool, str]]:
+        """
+        Get metadata (name, sql type, bigger_is_better, unit) for each metric that is produced by this evaluator.
+
+        :return: List of (name, sql type, bigger_is_better, unit) tuples
+        """
+
         result_columns = []
 
         # Get metric metadata of sub series evaluators (if any)
@@ -60,6 +71,19 @@ class MetricEvaluator(metaclass=ABCMeta):
         return [(f'{self.name_prefix}_{name}', d_type, big_is_better, unit) for name, d_type, big_is_better, unit in result_columns]
 
     def compute_assessment_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowType]) -> Dict[str, Scalar]:
+        """
+        Compute metrics for all the supplied trials.
+
+        The three list parameters must have the same length and the elements at the same index should correspond to the same trial.
+        :param all_trials: List of dataframes, where each dataframe contains the raw_data of one trial
+                           (time starting at 0.0 and only rows where target state = 1)
+        :param precomputed_vals: List of precompute dictionaries which map Precomputer -> Precomputed value/colum (one dict per trial)
+        :param db_results: List of dictionaries (one per trial) where each dictionary maps the keys in db_result_columns_to_select
+                           to the corresponding values from the frontend database's result table for the assessment mode to which this
+                           evaluator belongs.
+        :return: dictionary which maps metric (column) names to the computed metric values
+        """
+
         result_dict = {}
 
         # If this metric evaluator contains sub-evaluators in series_metric_evaluators,
