@@ -74,8 +74,8 @@ class TableMigrator:
                 {(f"WHERE {filter_cond}" if filter_cond else "")}
         ''').fetchall()
         if entries:
-            placeholder = f"({', '.join(['?' for _ in entries[0]])})"
-            self.out_conn.executemany(f'INSERT OR IGNORE INTO {table_name} VALUES {placeholder}', entries)
+            placeholder = ', '.join(['?' for _ in entries[0]])
+            self.out_conn.executemany(f'INSERT OR IGNORE INTO {table_name} VALUES ({placeholder})', entries)
         self.out_conn.commit()
 
     def out_get_all_columns_except(self, table, ignore_list) -> List[str]:
