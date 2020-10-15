@@ -1,4 +1,8 @@
 # Architecture
+
+## Table of Contents
+[[_TOC_]]
+
 ## Metric
 A Metric class defines how a certain metric is computed.
 There are four different kinds of metrics:
