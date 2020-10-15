@@ -19,7 +19,7 @@ AllAssessmentMetricsValues = List[Tuple[str, Scalar]]
 @dataclass
 class MetricEvaluator(metaclass=ABCMeta):
     name_prefix: str
-    db_result_columns_to_select: ClassVar[Tuple[str, ...]] = None
+    db_result_columns_to_select: ClassVar[Tuple[str, ...]] = ()
 
     trial_metrics: ClassVar[Tuple[TrialMetric, ...]] = ()
     diff_metrics: ClassVar[Tuple[DiffMetric, ...]] = ()
@@ -28,17 +28,31 @@ class MetricEvaluator(metaclass=ABCMeta):
 
     series_metric_evaluators: ClassVar[Tuple['MetricEvaluator', ...]] = ()
 
-    def get_precompute_dependencies(self) -> OrderedDict[Precomputer, None]:
+    def get_db_result_columns_to_select(self) -> List[str]:
         """
-        Get list of all precomputers required by any of the metrics in this evaluator or any of its sub (series) evaluators
+        Return list of database columns which this or any of its sub/series evaluators requires from the frontend database's result table.
+        """
+        return list(self._get_db_result_columns_to_select_impl().keys())
+
+    def _get_db_result_columns_to_select_impl(self) -> OrderedDict[str, None]:
+        db_cols = collections.OrderedDict([(db_col_name, None) for db_col_name in self.db_result_columns_to_select])
+        for evaluator in self.series_metric_evaluators:
+            db_cols.update(evaluator._get_db_result_columns_to_select_impl())
+        return db_cols
+
+    def get_precompute_dependencies(self) -> List[Precomputer]:
+        """
+        Get list of all precomputers required by any of the metrics in this evaluator or any of its sub/series evaluators
         :return: List of required precomputers (column and value precomputers)
         """
+        return list(self._get_precompute_dependencies_impl().keys())
 
+    def _get_precompute_dependencies_impl(self) -> OrderedDict[Precomputer, None]:
         precompute_dependencies = collections.OrderedDict()
 
         # Include precompute requirements of sub series evaluators (if any)
         for computer in self.series_metric_evaluators:
-            precompute_dependencies.update(computer.get_precompute_dependencies())
+            precompute_dependencies.update(computer._get_precompute_dependencies_impl())
 
         # Include precompute requirements of metrics from this evaluator
         for metric in self.trial_metrics + self.diff_metrics + self.summary_metrics + self.aggregator_metrics:
@@ -102,6 +116,11 @@ class MetricEvaluator(metaclass=ABCMeta):
                                                                                           list(compress(db_results, series_mask)))
                 result_dict.update(computed_metrics_for_series)
 
+        # Compute summary metric
+        for summary_metric in self.summary_metrics:
+            value = summary_metric.compute_across_trials(all_trials, precomputed_vals, db_results)
+            result_dict[summary_metric.name] = value
+
         # Compute trial metrics
         metric_values_for_trials = pd.DataFrame({metric.name: metric.compute_for_all_trials(all_trials, precomputed_vals, db_results)
                                                  for metric in self.trial_metrics})
@@ -110,11 +129,6 @@ class MetricEvaluator(metaclass=ABCMeta):
         for aggregate_metric in self.aggregator_metrics:
             aggregate_metric_value_dict = aggregate_metric.compute_for_all_metrics(metric_values_for_trials)
             result_dict.update(aggregate_metric_value_dict)
-
-        # Compute summary metric
-        for summary_metric in self.summary_metrics:
-            value = summary_metric.compute_across_trials(all_trials, precomputed_vals, db_results)
-            result_dict[summary_metric.name] = value
 
         # Compute diff metrics
         for diff_metric in self.diff_metrics:
@@ -125,4 +139,13 @@ class MetricEvaluator(metaclass=ABCMeta):
         return {f'{self.name_prefix}_{metric_name}': metric_value for metric_name, metric_value in result_dict.items()}
 
     def get_series_idx(self, db_trial_result: RowType) -> int:
+        """
+        This function needs to be overridden on evaluator classes which define sub-evaluators in series_metric_evaluators.
+
+        Based on a db_trial_result dictionary ), it should return the index of
+        the evaluator in series_metric_evaluators to use when processing that trial.
+
+        :param db_trial_result: columns from frontend database result table (those chosen in db_result_columns_to_select) for a single trial
+        :return: index of the matching evaluator in the series_metric_evaluators list
+        """
         return -1

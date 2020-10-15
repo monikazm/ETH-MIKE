@@ -144,7 +144,7 @@ class DataProcessor:
         # Prepare sql query string to retrieve data from result table for each mode
         result_table_query_for_mode = {
             mode: f'''
-                SELECT {", ".join(metric_evaluator_for_mode[mode].db_result_columns_to_select)}
+                SELECT {", ".join(metric_evaluator_for_mode[mode].get_db_result_columns_to_select())}
                 FROM {Tables.Results[mode]} AS R
                 JOIN {Tables.Assessment} AS A USING(AssessmentId)
                 WHERE AssessmentId == ?
