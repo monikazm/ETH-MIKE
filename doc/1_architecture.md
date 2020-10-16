@@ -61,12 +61,15 @@ class SomeMetric(TrialMetric):
         # ...
 ```
 
+It's important that the same precomputer object is used in all locations where the precomputed value/column is required. Different instances of the same precomputer class (e.g. vel1 = VelocityPrecomputer(), vel2 = VelocityPrecomputer()) are treated as different precomputers (-> same precomputation is performed twice).
+
+Finally, Precomputers classes can also have a `requires` field with which they can depend on other Precomputers. (e.g. AbsVelocity precomputer depends on Velocity precomputer). The system will automatically ensure that the precomputers on which a precomputer depends are computed before the precomputer itself, but it is up to the user to ensure that there are no cyclic dependencies (e.g. precomputer a requiring precomputer b which requires a).
 ## Data Processor
 
 The DataProcessor is responsible for:
 1. Creating database tables to store the computed metrics
 2. Creating database views which make it easier to work with the data in an ad-hoc fashion (e.g. from an R console) or to export the data in a human-readable format
-3. Importing raw data and obtaining metrics by running the mode-specific metric evaluator for every relevant tdms file
+3. Importing raw data, preprocessing the data (running [precomputers](#precomputer), changing sign for right-hand data, splitting into trials)) and obtaining metrics by running the mode-specific metric evaluator for every relevant tdms file
 4. Storing the obtained metrics in the database
 
 The metric column names and types which are needed to create the tables in 1. are obtained from the respective root metric evaluator for each assessment mode.
