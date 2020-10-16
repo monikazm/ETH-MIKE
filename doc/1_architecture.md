@@ -36,7 +36,30 @@ The final metric values are returned as a dictionary which maps metric name (wit
 
 ## Precomputer
 
-TODO
+It is often the case, that the same intermediate results are required to compute several different metrics. An important example would be the movement velocity, which is not part of the raw data and needs to be computed from derivative of the position.
+
+This framework makes it possible to define custom Precomputer objects, which allow the precomputation, and thus the sharing of such intermediate results between several metrics.
+
+There are two kinds of precomputers:
+- `ValuePrecomputer`: For each trial, it gets the raw data rows with matching TrialNr and where TargetState == 1 as input and produces an arbitrary value (scalar/vector/matrix/...) as output.
+- `ColumnPrecomputer`: It gets the entire raw data (all rows for all trials and no matter if TargetState) as input and produces another column with the same number of rows
+
+Some examples of ColumnPrecomputers are `VelocityComputer` or `JerkComputer`.
+
+Each metric class can define a list of Precomputer objects in its `requires` field. The system ensures that all Precomputers which are required by any metric of a particular metric evaluator, are precomputed before the metric evaluation, and passes the Precomputed columns or values to the metrics using the `precomputed` parameter, which is a dictionary mapping
+Precomputer Object -> PrecomputedValue.
+
+The precomputed value can then be accessed in the metric e.g. like this:
+```python
+# somewhere else Velocity = VelocityPrecomputer()
+
+class SomeMetric(TrialMetric):
+    # ...
+    requires = (Velocity,)
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+        velocity = precomputed[Velocity]
+        # ...
+```
 
 ## Data Processor
 
