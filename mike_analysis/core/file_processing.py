@@ -1,7 +1,7 @@
 # Extract trial data from tdms
 import os
 import shutil
-from typing import List, Any
+from typing import Any
 from zipfile import ZipFile
 
 import pandas as pd
@@ -9,9 +9,8 @@ from nptdms import TdmsFile
 from scipy.signal import filtfilt
 
 from mike_analysis.core.constants import tdms_cols, col_names, Modes, TrialCol, RStateCol, TimeCol, ForceCol, PosCol, SPosCol, TPosCol, TSCol
-from mike_analysis.core.precomputer import Precomputer
+from mike_analysis.core.precomputer import Precomputer, ColumnPrecomputer
 from mike_analysis.evaluators import *
-from mike_analysis.precomputers.base_values import SamplingRate
 
 
 def search_and_extract_tdms_from_zips(zip_dir, session_id, rel_path, output_path) -> bool:
@@ -39,20 +38,22 @@ def search_and_extract_tdms_from_zips(zip_dir, session_id, rel_path, output_path
 def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_from_db: List[Dict[str, Any]]) -> Dict:
     mode = Modes(task_type)
     evaluator = metric_evaluator_for_mode[mode]
-    col_deps, normal_deps = required_precomputations_for_mode[mode]
+    column_precomputers, value_precomputers = required_precomputations_for_mode[mode]
 
     # Read and preprocess tdms file
     tdms_data = _read_tdms_file(filename)
-    tdms_trials = preprocess_and_split_trials(tdms_data, left_hand, col_deps)
+    tdms_trials = preprocess_and_split_trials(tdms_data, left_hand, column_precomputers)
 
     # Precompute ValuePrecomputers and build precompute dicts for each trial
     precomputed_vals = [{} for _ in tdms_trials]
-    if normal_deps or col_deps:
-        for trial_data, precomputed_vals_for_trial in zip(tdms_trials, precomputed_vals):
-            for dependency in col_deps:
-                precomputed_vals_for_trial[dependency] = trial_data[dependency.col_name]
-            for dependency in normal_deps:
-                dependency.precompute_for(trial_data, precomputed_vals_for_trial)
+    if value_precomputers or column_precomputers:
+        for trial_data_frame, precomputed_vals_for_trial in zip(tdms_trials, precomputed_vals):
+            for column_precomputer in column_precomputers:
+                # For column precomputers, store the pandas series with the section/rows of the
+                # precomputed column corresponding to the trial in the corresponding precompute dict
+                precomputed_vals_for_trial[column_precomputer] = trial_data_frame[column_precomputer.col_name]
+            for value_precomputer in value_precomputers:
+                value_precomputer.precompute_for(trial_data_frame, precomputed_vals_for_trial)
 
     # Compute metrics
     computed_metrics = evaluator.compute_assessment_metrics(tdms_trials, precomputed_vals, trial_results_from_db)
@@ -65,13 +66,17 @@ def _read_tdms_file(filename: str):
     return tdms_data
 
 
-def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_computers, filter_position=True) -> List[pd.DataFrame]:
+def estimate_sampling_rate(data: pd.DataFrame) -> float:
+    fs = round(1.0 / data[TimeCol].diff().median(), 5)
+    return fs
+
+
+def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_computers: List[ColumnPrecomputer], filter_position=True) -> List[pd.DataFrame]:
     # Drop duplicate rows to avoid nans in derivatives
     data.drop_duplicates(subset=[TimeCol], inplace=True)
 
     # Compute sampling rate
-    precomputed_cols = {}
-    SamplingRate.precompute_for(data, precomputed_cols)
+    fs = estimate_sampling_rate(data)
 
     # Negate vectors if right hand (so that flexion direction is always positive)
     if not left_hand:
@@ -81,7 +86,7 @@ def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_comp
         data[ForceCol] = -data[ForceCol]
 
     # Filter position signal
-    b, a = Precomputer.get_filter(precomputed_cols[SamplingRate], fc=20.0, deg=2)
+    b, a = Precomputer.get_filter(fs, fc=20.0, deg=2)
     pos_flt = filtfilt(b, a, data[PosCol]) if filter_position else data[PosCol]
     data[PosCol] = pos_flt.clip(-90.0, 90.0) # Restrict position to [-90.0, 90.0] range
     #data[PosCol] = pos_flt
@@ -94,8 +99,9 @@ def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_comp
     # plt.show()
 
     # Precompute other columns
+    precomputed_cols = {}
     for cc in column_computers:
-        cc.precompute_for(data, precomputed_cols)
+        cc.precompute_for(data, precomputed_cols, fs)
 
     # Remove rows where target state is not true or TrialNr is 0 (happens sometimes at the end)
     data = data[data[TSCol] == 1]

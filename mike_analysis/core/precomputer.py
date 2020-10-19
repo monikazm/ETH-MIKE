@@ -23,10 +23,6 @@ class Precomputer(metaclass=ABCMeta):
         b, a = butter(deg, fc, fs=fs)
         return b, a
 
-    @abstractmethod
-    def precompute_for(self, data: pd.DataFrame, precomputed_values: 'PrecomputeDict'):
-        pass
-
 
 @dataclass(frozen=True)
 class ValuePrecomputer(Precomputer, metaclass=ABCMeta):
@@ -42,13 +38,13 @@ class ValuePrecomputer(Precomputer, metaclass=ABCMeta):
 class ColumnPrecomputer(Precomputer, metaclass=ABCMeta):
     col_name: str
 
-    def precompute_for(self, data: pd.DataFrame, precomputed_values: 'PrecomputeDict'):
+    def precompute_for(self, data: pd.DataFrame, precomputed_values: 'PrecomputeDict', fs: float):
         assert self not in precomputed_values
-        data[self.col_name] = self._compute_column(data, precomputed_values)
+        data[self.col_name] = self._compute_column(data, precomputed_values, fs)
         precomputed_values[self] = data[self.col_name]
 
     @abstractmethod
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: 'PrecomputeDict') -> np.array:
+    def _compute_column(self, data: pd.DataFrame, precomputed_values: 'PrecomputeDict', fs: float) -> np.array:
         pass
 
 

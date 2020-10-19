@@ -6,15 +6,12 @@ from scipy.signal import filtfilt
 
 from mike_analysis.core.constants import TimeCol, ForceCol, PosCol
 from mike_analysis.core.precomputer import ColumnPrecomputer, PrecomputeDict
-from mike_analysis.precomputers.base_values import SamplingRate
 
 
 @dataclass(frozen=True)
 class ForceDerivativeComputer(ColumnPrecomputer):
-    requires = (SamplingRate,)
-
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict) -> np.array:
-        b, a = self.get_filter(precomputed_values[SamplingRate])
+    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict, fs: float) -> np.array:
+        b, a = self.get_filter(fs)
         df_dt = np.gradient(data[ForceCol], data[TimeCol])
         df_dt_flt = filtfilt(b, a, df_dt)
         return df_dt_flt
@@ -23,12 +20,10 @@ ForceDerivative = ForceDerivativeComputer('dFdT')
 
 @dataclass(frozen=True)
 class VelocityComputer(ColumnPrecomputer):
-    requires = (SamplingRate,)
-
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict) -> np.array:
+    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict, fs: float) -> np.array:
         dp_dt = np.gradient(data[PosCol], data[TimeCol])
 
-        b, a = self.get_filter(precomputed_values[SamplingRate])
+        b, a = self.get_filter(fs)
         dp_dt_flt = filtfilt(b, a, dp_dt)
         # import matplotlib.pyplot as plt
         # plt.plot(data[TimeCol], dp_dt, label='unfiltered')
@@ -42,19 +37,19 @@ Velocity = VelocityComputer('Velocity')
 
 @dataclass(frozen=True)
 class AbsVelocityComputer(ColumnPrecomputer):
-    requires = (SamplingRate, Velocity,)
+    requires = (Velocity,)
 
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict) -> np.array:
+    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict, fs: float) -> np.array:
         return np.abs(precomputed_values[Velocity])
 AbsVelocity = AbsVelocityComputer('AbsVelocity')
 
 
 @dataclass(frozen=True)
 class JerkComputer(ColumnPrecomputer):
-    requires = (SamplingRate, Velocity,)
+    requires = (Velocity,)
 
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict) -> np.array:
-        b, a = self.get_filter(precomputed_values[SamplingRate])
+    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict, fs: float) -> np.array:
+        b, a = self.get_filter(fs)
 
         # Compute acceleration
         accel = np.gradient(precomputed_values[Velocity], data[TimeCol])

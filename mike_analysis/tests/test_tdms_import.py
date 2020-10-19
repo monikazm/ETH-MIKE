@@ -4,7 +4,7 @@ import pandas as pd
 from numpy.testing import assert_equal, assert_almost_equal
 
 from mike_analysis.core.file_processing import _read_tdms_file, preprocess_and_split_trials
-from mike_analysis.core.constants import RomPhase
+from mike_analysis.core.constants import RomPhase, PosCol
 from mike_analysis.precomputers.derivatives import AbsVelocity, Velocity
 from mike_analysis.tests import test_data_folder
 
@@ -28,6 +28,7 @@ class TdmsTests(unittest.TestCase):
         for phase in RomPhase:
             for trial in (1, 2, 3):
                 expected = pd.read_csv(test_data_folder.joinpath('test_rom_trials').joinpath(f'test_rom_{phase}_{trial}.csv'))
+                expected[PosCol] = expected[PosCol].clip(-90.0, 90.0)
 
                 # Check if the data matches the csv data which which was manually created with Excel
                 self.assertTrue(all(col in tdms_trials[i].columns.values for col in expected.columns.values))
