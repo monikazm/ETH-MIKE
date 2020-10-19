@@ -8,9 +8,12 @@ import pandas as pd
 from nptdms import TdmsFile
 from scipy.signal import filtfilt
 
-from mike_analysis.core.constants import tdms_cols, col_names, Modes, TrialCol, RStateCol, TimeCol, ForceCol, PosCol, SPosCol, TPosCol, TSCol
+from mike_analysis.core.constants import tdms_cols, col_names, Modes, TrialCol, RStateCol, TimeCol, ForceCol, PosCol, SPosCol, TPosCol, \
+    TSCol, colored_print, TColor
 from mike_analysis.core.precomputer import Precomputer, ColumnPrecomputer
 from mike_analysis.evaluators import *
+
+EXPECTED_DATA_RATE = 1000.0
 
 
 def search_and_extract_tdms_from_zips(zip_dir, session_id, rel_path, output_path) -> bool:
@@ -42,7 +45,17 @@ def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_f
 
     # Read and preprocess tdms file
     tdms_data = _read_tdms_file(filename)
-    tdms_trials = preprocess_and_split_trials(tdms_data, left_hand, column_precomputers)
+
+    # Compute sampling rate
+    fs = estimate_sampling_rate(tdms_data)
+
+    # Check if data rate matches expectation
+    if abs(EXPECTED_DATA_RATE - fs) > 1.0:
+        with colored_print(TColor.WARNING):
+            print(f'WARNING: Data rate of {filename} differs significantly from {EXPECTED_DATA_RATE} (was {fs})')
+
+    # Preprocess data (flip sign for right hand, precompute columns, filter position, remove TS=0 rows, split by trial, ...)
+    tdms_trials = preprocess_and_split_trials(tdms_data, left_hand, column_precomputers, fs)
 
     # Precompute ValuePrecomputers and build precompute dicts for each trial
     precomputed_vals = [{} for _ in tdms_trials]
@@ -67,16 +80,14 @@ def _read_tdms_file(filename: str):
 
 
 def estimate_sampling_rate(data: pd.DataFrame) -> float:
-    fs = round(1.0 / data[TimeCol].diff().median(), 5)
+    fs = round(1.0 / data[TimeCol].diff().median(), 8)
     return fs
 
 
-def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_computers: List[ColumnPrecomputer], filter_position=True) -> List[pd.DataFrame]:
+def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_computers: List[ColumnPrecomputer],
+                                fs: float, filter_position=True) -> List[pd.DataFrame]:
     # Drop duplicate rows to avoid nans in derivatives
     data.drop_duplicates(subset=[TimeCol], inplace=True)
-
-    # Compute sampling rate
-    fs = estimate_sampling_rate(data)
 
     # Negate vectors if right hand (so that flexion direction is always positive)
     if not left_hand:

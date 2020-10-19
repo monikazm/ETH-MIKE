@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 from numpy.testing import assert_equal, assert_almost_equal
 
-from mike_analysis.core.file_processing import _read_tdms_file, preprocess_and_split_trials
+from mike_analysis.core.file_processing import _read_tdms_file, preprocess_and_split_trials, estimate_sampling_rate
 from mike_analysis.core.constants import RomPhase, PosCol
 from mike_analysis.precomputers.derivatives import AbsVelocity, Velocity
 from mike_analysis.tests import test_data_folder
@@ -22,7 +22,8 @@ class TdmsTests(unittest.TestCase):
 
     def test_trial_splitting(self):
         tdms_data = _read_tdms_file(test_data_folder.joinpath('test_rom.tdms'))
-        tdms_trials = preprocess_and_split_trials(tdms_data, True, [Velocity, AbsVelocity], filter_position=False)
+        fs = estimate_sampling_rate(tdms_data)
+        tdms_trials = preprocess_and_split_trials(tdms_data, True, [Velocity, AbsVelocity], fs, filter_position=False)
         i = 0
 
         for phase in RomPhase:

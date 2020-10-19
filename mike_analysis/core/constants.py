@@ -1,6 +1,6 @@
 # Standardized column names
 from contextlib import contextmanager
-from enum import IntEnum
+from enum import IntEnum, Enum
 from timeit import default_timer as timer
 
 TimeCol = 'Time'
@@ -76,7 +76,7 @@ class RCCols:
     RepeatInst = 'redcap_repeat_instance'
 
 
-class TColor:
+class TColor(Enum):
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[36m'
@@ -86,6 +86,13 @@ class TColor:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+
+@contextmanager
+def colored_print(color: TColor):
+    print(color.value, end='')
+    yield
+    print(TColor.ENDC.value, end='')
 
 
 @contextmanager

@@ -40,7 +40,7 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
                                                                                              RCCols.RepeatInst, 'IthSession'])])
             return f'''
             CREATE VIEW "{view_name}" AS
-                SELECT R.SubjectNr, R.LeftHand, R.IthSession, R.PseudoStartTime AS SessionStartDate,
+                SELECT R.SubjectNr, R.LeftHand, R.IthSession, R.SessionStartDate,
                     D.{REDCAP_RECORD_IDENTIFIER}, V.{RCCols.EventName}, V.{RCCols.RepeatInst},
                     {", ".join([f"R.{patient_column}" for patient_column in patient_cols])},
                     {", ".join([f"D.{demo_col}" for demo_col in demo_cols])},

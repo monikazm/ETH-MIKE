@@ -8,7 +8,7 @@ import pandas as pd
 
 import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
-from mike_analysis.core.constants import Tables, Modes, ModeDescs, time_measured
+from mike_analysis.core.constants import Tables, Modes, ModeDescs, time_measured, colored_print, TColor
 from mike_analysis.core.file_processing import process_tdms, search_and_extract_tdms_from_zips
 from mike_analysis.core.table_migrator import TableMigrator
 from mike_analysis.evaluators import metric_evaluator_for_mode
@@ -83,9 +83,9 @@ class DataProcessor:
         # Create Pseudo Session View
         self.migrator.create_or_update_table_index_or_view_from_stmt('''
             CREATE VIEW "PseudoSession" AS
-            SELECT PatientId, LeftHand, IthSession, PseudoStartTime, AssessmentId
+            SELECT PatientId, LeftHand, IthSession, SessionStartDate, AssessmentId
             FROM (
-                SELECT PatientId, LeftHand, IthSession, DATE(MIN(SessionStartTime)) AS PseudoStartTime
+                SELECT PatientId, LeftHand, IthSession, DATE(MIN(SessionStartTime)) AS SessionStartDate
                 FROM (
                     SELECT S.PatientId, A.LeftHand,
                            ROW_NUMBER() OVER (PARTITION BY S.PatientId, A.LeftHand, A.TaskType ORDER BY AssessmentId ASC) AS IthSession,
@@ -114,7 +114,7 @@ class DataProcessor:
         session_result_view_name = 'SessionResult'
         create_combined_session_result_stmt = f'''
             CREATE VIEW {session_result_view_name} AS
-                SELECT P.SubjectNr, PS.PatientId, PS.LeftHand, PS.IthSession, PS.PseudoStartTime,
+                SELECT P.SubjectNr, PS.PatientId, PS.LeftHand, PS.IthSession, PS.SessionStartDate,
                     {", ".join([f"P.{patient_column}" for patient_column in patient_columns])},
                     {metric_names}
                 FROM PseudoSession AS PS
@@ -128,9 +128,35 @@ class DataProcessor:
         study_cfg.create_additional_views(self.migrator, f', '.join(all_metric_col_names))
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
-        # Retrieve all completed assessments which are currently marked as a result of a session
         enabled_modes = [mode for mode in Modes if mode.name in cfg.IMPORT_ASSESSMENTS]
         self.out_conn.row_factory = sqlite3.Row
+
+        # Check for missing data
+        incomplete_sessions = self.out_conn.execute('''
+            SELECT * FROM (
+                SELECT P.SubjectNr, S.*, COUNT(S.AssessmentId) AS NumAssessments, GROUP_CONCAT(A.TaskType) AS CompletedTasks
+                FROM PseudoSession AS S
+                JOIN Assessment AS A USING(AssessmentId)
+                JOIN Patient AS P USING(PatientId)
+                GROUP BY S.PatientId, S.LeftHand, S.IthSession
+            )
+            WHERE NumAssessments != ?
+        ''', (len(enabled_modes),)).fetchall()
+        if incomplete_sessions:
+            missing_assess_for_user_hand = {(sess['SubjectNr'], sess['LeftHand']): {mode: 0 for mode in enabled_modes} for sess in
+                                            incomplete_sessions}
+            for sess in incomplete_sessions:
+                for t in sess['CompletedTasks'].split(','):
+                    missing_assess_for_user_hand[(sess['SubjectNr'], sess['LeftHand'])][Modes(int(t, 10))] += 1
+
+            with colored_print(TColor.WARNING):
+                for (patient, leftHand), missing_for_Mode in missing_assess_for_user_hand.items():
+                    for mode, count in missing_for_Mode.items():
+                        if count > 0:
+                            print(f'WARNING: Patient {patient}, {"left" if leftHand else "right"} hand is missing '
+                                  f'{count} {mode.name} assessment{"s" if count > 1 else ""}')
+
+        # Retrieve all completed assessments which are currently marked as a result of a session
         assessment_query = f'''
             SELECT S.SessionId, P.SubjectNr, A.AssessmentId, A.TaskType, A.LeftHand, strftime('%Y%m%d_%H%M%S', A.StartTime) AS FmtStartTime
             FROM {Tables.Session} AS S
@@ -173,6 +199,8 @@ class DataProcessor:
                 user_backup_dir = os.path.join(polybox_upload_dir, 'Session Results', subject_nr)
                 found = search_and_extract_tdms_from_zips(user_backup_dir, assessment['SessionId'], rel_path, full_tdms_path)
                 if not found:
+                    with colored_print(TColor.WARNING):
+                        print(f'WARNING: Raw data for assessment {assessment["AssessmentId"]} appears to be missing ("{full_tdms_path}").')
                     continue
 
             db_trial_results = self.in_conn.execute(result_table_query_for_mode[mode], (assessment_id,)).fetchall()

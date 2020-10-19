@@ -5,7 +5,7 @@ from typing import Dict, Tuple, List, Set, Optional
 import pandas as pd
 import requests
 
-from mike_analysis.core.constants import SqlTypes, TColor
+from mike_analysis.core.constants import SqlTypes, TColor, colored_print
 
 # For debugging, if set to true, export_records will read data from a file data.csv in the current working directory instead of
 # downloading the data from the redcap API.
@@ -30,9 +30,10 @@ class RedCap:
                       Make sure the user account to which this token belongs has sufficient access rights.
         """
         if api_url.strip().startswith('http://'):
-            print(f'{TColor.FAIL}WARNING: Your REDCAP_URL uses plain HTTP which is INSECURE in the general case. (USE HTTPS INSTEAD!)\n'
-                  f'THIS MEANS THAT ALL THE DATA (INCLUDING YOUR API TOKEN) WILL BE SENT UNENCRYPTED OVER THE NETWORK/INTERNET\n'
-                  f'AND CAN THUS BE READ OR TAMPERED WITH BY UNAUTHORIZED THIRD-PARTIES IN ANY NETWORK WHICH THIS CONNECTION TRAVERSES.{TColor.ENDC}')
+            with colored_print(TColor.FAIL):
+                print('WARNING: Your REDCAP_URL uses plain HTTP which is INSECURE in the general case. (USE HTTPS INSTEAD!)\n'
+                      'THIS MEANS THAT ALL THE DATA (INCLUDING YOUR API TOKEN) WILL BE SENT UNENCRYPTED OVER THE NETWORK/INTERNET\n'
+                      'AND CAN THUS BE READ OR TAMPERED WITH BY UNAUTHORIZED THIRD-PARTIES IN ANY NETWORK WHICH THIS CONNECTION TRAVERSES.')
             if input('\nI know what I am doing (e.g. this is a localhost connection for debugging) and wish to proceed [y/N]:').lower() != 'y':
                 sys.exit(-42)
 
