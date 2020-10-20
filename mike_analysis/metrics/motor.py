@@ -3,8 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from mike_analysis.core.constants import ForceCol, PosCol, SPosCol, TimeCol
-from mike_analysis.core.metric import TrialMetric, RowType, Scalar
+from mike_analysis.core.constants import ForceCol, PosCol, SPosCol, TimeCol, RowDict
+from mike_analysis.core.metric import TrialMetric, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 from mike_analysis.precomputers.derivatives import AbsVelocity, Jerk
 
@@ -18,7 +18,7 @@ class MaxVelocity(TrialMetric):
     unit = speed_unit
     requires = (AbsVelocity,)
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         return precomputed[AbsVelocity].max()
 
 
@@ -29,7 +29,7 @@ class MaxNormalizedVelocity(TrialMetric):
     unit = '1/s'
     requires = (AbsVelocity,)
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         abs_vel = precomputed[AbsVelocity]
         max_abs_v = abs_vel.max()
         data_at_max_v = trial_data[abs_vel == max_abs_v].head(1)
@@ -43,7 +43,7 @@ class MAPR(TrialMetric):
     unit = ''
     requires = (AbsVelocity,)
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         abs_vel = precomputed[AbsVelocity]
         v_thresh = 0.2 * abs_vel.mean()
         mapr = (abs_vel < v_thresh).sum() / float(len(trial_data))
@@ -57,7 +57,7 @@ class VelocitySD(TrialMetric):
     unit = speed_unit
     requires = (AbsVelocity,)
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         return precomputed[AbsVelocity].std()
 
 
@@ -67,7 +67,7 @@ class MaxForce(TrialMetric):
     bigger_is_better = True
     unit = 'N'
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         return trial_data[ForceCol].abs().max()
 
 
@@ -77,7 +77,7 @@ class NIJ(TrialMetric):
     unit = ''
     requires = (AbsVelocity, Jerk,)
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         if (precomputed[AbsVelocity] < 0.05).sum() > len(trial_data) * 0.9:
             # Non moving patient
             return np.inf

@@ -4,8 +4,8 @@ from typing import List
 
 import pandas as pd
 
-from mike_analysis.core.constants import SPosCol, PosCol, TPosCol
-from mike_analysis.core.metric import RowType, Scalar, SummaryMetric, DTypes
+from mike_analysis.core.constants import SPosCol, PosCol, TPosCol, RowDict
+from mike_analysis.core.metric import Scalar, SummaryMetric, DTypes
 from mike_analysis.core.precomputer import PrecomputeDict
 
 
@@ -16,7 +16,7 @@ class NumTrials(SummaryMetric):
     bigger_is_better = True
     unit = ''
 
-    def compute_across_trials(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowType]) -> Scalar:
+    def compute_across_trials(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowDict]) -> Scalar:
         return len(all_trials)
 
 
@@ -30,7 +30,7 @@ class DeltaRMSE(SummaryMetric):
     target_col: str
     actual_col: str
 
-    def compute_across_trials(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowType]) -> Scalar:
+    def compute_across_trials(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowDict]) -> Scalar:
         squared_sum = 0.0
         for db_trial_result in db_trial_results:
             delta = db_trial_result[self.target_col] - db_trial_result[self.actual_col]
@@ -45,7 +45,7 @@ class NrOfTrialsWithoutReachingTarget(SummaryMetric):
     bigger_is_better = False
     unit = ''
 
-    def compute_across_trials(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowType]) -> Scalar:
+    def compute_across_trials(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_trial_results: List[RowDict]) -> Scalar:
         total_trial_count = len(all_trials)
         count_where_target_not_reached = 0
         for trial in all_trials:

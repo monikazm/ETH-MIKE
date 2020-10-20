@@ -8,7 +8,7 @@ import pandas as pd
 
 import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
-from mike_analysis.core.constants import Tables, Modes, ModeDescs, time_measured, colored_print, TColor
+from mike_analysis.core.constants import Tables, Modes, ModeDescs, time_measured, colored_print, TColor, dict_factory
 from mike_analysis.core.file_processing import process_tdms, search_and_extract_tdms_from_zips
 from mike_analysis.core.table_migrator import TableMigrator
 from mike_analysis.evaluators import metric_evaluator_for_mode
@@ -180,7 +180,7 @@ class DataProcessor:
         }
 
         # Prepare list of assessments for which metrics need to be computed
-        self.in_conn.row_factory = self._dict_factory
+        self.in_conn.row_factory = dict_factory
         todo_assessments = {mode: [] for mode in enabled_modes}
         for assessment in data:
             assessment_id = assessment['AssessmentId']
@@ -232,10 +232,3 @@ class DataProcessor:
         result_dict = process_tdms(args.tdms_path, args.left_hand, args.task_type, args.db_trial_results)
         result_dict['AssessmentId'] = args.assessment_id
         return result_dict
-
-    @staticmethod
-    def _dict_factory(cursor, row):
-        d = {}
-        for idx, col in enumerate(cursor.description):
-            d[col[0]] = row[idx]
-        return d

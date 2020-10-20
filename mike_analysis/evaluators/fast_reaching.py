@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
+from mike_analysis.core.metric_evaluator import RowDict, MetricEvaluator
 from mike_analysis.metrics.aggregate import MeanTop3, StdDevTop3
 from mike_analysis.metrics.motor import MaxVelocity, MaxNormalizedVelocity
 from mike_analysis.metrics.positional import AbsPositionErrorAtSteadyState
@@ -39,5 +39,5 @@ class FastReachingEvaluator(MetricEvaluator):
     )
 
     @classmethod
-    def get_series_idx(cls, db_trial_result: RowType) -> int:
+    def get_series_idx(cls, db_trial_result: RowDict) -> int:
         return db_trial_result['Flexion']

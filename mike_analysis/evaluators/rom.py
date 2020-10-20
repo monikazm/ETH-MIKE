@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
+from mike_analysis.core.metric_evaluator import RowDict, MetricEvaluator
 from mike_analysis.metrics.motor import MaxForce
 from mike_analysis.metrics.positional import MinRom, MaxRom, Rom
 from mike_analysis.metrics.summary import NumTrials
@@ -43,5 +43,5 @@ class RomEvaluator(MetricEvaluator):
     )
 
     @classmethod
-    def get_series_idx(cls, db_trial_result: RowType) -> int:
+    def get_series_idx(cls, db_trial_result: RowDict) -> int:
         return db_trial_result['RomMode']

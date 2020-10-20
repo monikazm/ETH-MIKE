@@ -58,18 +58,18 @@ def process_tdms(filename: str, left_hand: bool, task_type: int, trial_results_f
     tdms_trials = preprocess_and_split_trials(tdms_data, left_hand, column_precomputers, fs)
 
     # Precompute ValuePrecomputers and build precompute dicts for each trial
-    precomputed_vals = [{} for _ in tdms_trials]
+    all_precomputed = [{} for _ in tdms_trials]
     if value_precomputers or column_precomputers:
-        for trial_data_frame, precomputed_vals_for_trial in zip(tdms_trials, precomputed_vals):
+        for trial_data_frame, precomputed_for_trial in zip(tdms_trials, all_precomputed):
             for column_precomputer in column_precomputers:
                 # For column precomputers, store the pandas series with the section/rows of the
                 # precomputed column corresponding to the trial in the corresponding precompute dict
-                precomputed_vals_for_trial[column_precomputer] = trial_data_frame[column_precomputer.col_name]
+                precomputed_for_trial[column_precomputer] = trial_data_frame[column_precomputer.col_name]
             for value_precomputer in value_precomputers:
-                value_precomputer.precompute_for(trial_data_frame, precomputed_vals_for_trial)
+                precomputed_for_trial[value_precomputer] = value_precomputer.precompute_value(trial_data_frame, precomputed_for_trial)
 
     # Compute metrics
-    computed_metrics = evaluator.compute_assessment_metrics(tdms_trials, precomputed_vals, trial_results_from_db)
+    computed_metrics = evaluator.compute_assessment_metrics(tdms_trials, all_precomputed, trial_results_from_db)
     return computed_metrics
 
 
@@ -110,9 +110,9 @@ def preprocess_and_split_trials(data: pd.DataFrame, left_hand: bool, column_comp
     # plt.show()
 
     # Precompute other columns
-    precomputed_cols = {}
+    precomputed_columns = {}
     for cc in column_computers:
-        cc.precompute_for(data, precomputed_cols, fs)
+        precomputed_columns[cc] = cc.precompute_df_column(data, precomputed_columns, fs)
 
     # Remove rows where target state is not true or TrialNr is 0 (happens sometimes at the end)
     data = data[data[TSCol] == 1]

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mike_analysis.core.metric_evaluator import RowType, MetricEvaluator
+from mike_analysis.core.metric_evaluator import RowDict, MetricEvaluator
 from mike_analysis.metrics.motor import MAPR, VelocitySD, NIJ
 from mike_analysis.metrics.positional import MinRom, Rom
 from mike_analysis.metrics.sensorimotor import RMSError, StdPeakAmplitude, MeanAbsPeakdiff
@@ -36,5 +36,5 @@ class TrajectoryFollowingEvaluator(MetricEvaluator):
     )
 
     @classmethod
-    def get_series_idx(cls, db_trial_result: RowType) -> int:
+    def get_series_idx(cls, db_trial_result: RowDict) -> int:
         return db_trial_result['Fast']

@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 from enum import IntEnum, Enum
 from timeit import default_timer as timer
+from typing import Dict, Any
 
 TimeCol = 'Time'
 TrialCol = 'Trial'
@@ -101,3 +102,18 @@ def time_measured(desc: str):
     yield
     end = timer()
     print(f'Done with {desc}, elapsed: {end - start:.2f}s')
+
+
+RowDict = Dict[str, Any]
+"""Type representing a result row from a database query (maps column name -> value)"""
+
+
+def dict_factory(cursor, row) -> RowDict:
+    """
+    Row factory which can be used with python's sqlite3 module.
+    Each database row is returned as a dictionary mapping column names to values.
+    """
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d

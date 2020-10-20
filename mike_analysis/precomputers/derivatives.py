@@ -10,7 +10,7 @@ from mike_analysis.core.precomputer import ColumnPrecomputer, PrecomputeDict
 
 @dataclass(frozen=True)
 class ForceDerivativeComputer(ColumnPrecomputer):
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict, fs: float) -> np.array:
+    def _compute_column(self, data: pd.DataFrame, precomputed_columns: PrecomputeDict, fs: float) -> np.array:
         b, a = self.get_filter(fs)
         df_dt = np.gradient(data[ForceCol], data[TimeCol])
         df_dt_flt = filtfilt(b, a, df_dt)
@@ -20,7 +20,7 @@ ForceDerivative = ForceDerivativeComputer('dFdT')
 
 @dataclass(frozen=True)
 class VelocityComputer(ColumnPrecomputer):
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict, fs: float) -> np.array:
+    def _compute_column(self, data: pd.DataFrame, precomputed_columns: PrecomputeDict, fs: float) -> np.array:
         dp_dt = np.gradient(data[PosCol], data[TimeCol])
 
         b, a = self.get_filter(fs)
@@ -39,8 +39,8 @@ Velocity = VelocityComputer('Velocity')
 class AbsVelocityComputer(ColumnPrecomputer):
     requires = (Velocity,)
 
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict, fs: float) -> np.array:
-        return np.abs(precomputed_values[Velocity])
+    def _compute_column(self, data: pd.DataFrame, precomputed_columns: PrecomputeDict, fs: float) -> np.array:
+        return np.abs(precomputed_columns[Velocity])
 AbsVelocity = AbsVelocityComputer('AbsVelocity')
 
 
@@ -48,11 +48,11 @@ AbsVelocity = AbsVelocityComputer('AbsVelocity')
 class JerkComputer(ColumnPrecomputer):
     requires = (Velocity,)
 
-    def _compute_column(self, data: pd.DataFrame, precomputed_values: PrecomputeDict, fs: float) -> np.array:
+    def _compute_column(self, data: pd.DataFrame, precomputed_columns: PrecomputeDict, fs: float) -> np.array:
         b, a = self.get_filter(fs)
 
         # Compute acceleration
-        accel = np.gradient(precomputed_values[Velocity], data[TimeCol])
+        accel = np.gradient(precomputed_columns[Velocity], data[TimeCol])
         accel_flt = filtfilt(b, a, accel)
 
         # import matplotlib.pyplot as plt

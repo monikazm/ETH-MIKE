@@ -6,12 +6,12 @@ from typing import List, Dict, Union, Tuple, ClassVar, OrderedDict
 
 import pandas as pd
 
+from mike_analysis.core.constants import RowDict
 from mike_analysis.core.metric import AggregateMetric, DiffMetric, SummaryMetric, TrialMetric
 from mike_analysis.core.precomputer import Precomputer, PrecomputeDict
 from mike_analysis.metrics.aggregate import StdDev, Mean
 
 Scalar = Union[bool, int, float]
-RowType = Dict[str, Scalar]
 AllMetricsTrialValues = List[Tuple[str, List[Scalar]]]
 AllAssessmentMetricsValues = List[Tuple[str, Scalar]]
 
@@ -84,7 +84,7 @@ class MetricEvaluator(metaclass=ABCMeta):
         # Return metadata with evaluator name prepended to metric name
         return [(f'{self.name_prefix}_{name}', d_type, big_is_better, unit) for name, d_type, big_is_better, unit in result_columns]
 
-    def compute_assessment_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowType]) -> Dict[str, Scalar]:
+    def compute_assessment_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowDict]) -> Dict[str, Scalar]:
         """
         Compute metrics for all the supplied trials.
 
@@ -138,7 +138,7 @@ class MetricEvaluator(metaclass=ABCMeta):
         # Append prefix to name
         return {f'{self.name_prefix}_{metric_name}': metric_value for metric_name, metric_value in result_dict.items()}
 
-    def get_series_idx(self, db_trial_result: RowType) -> int:
+    def get_series_idx(self, db_trial_result: RowDict) -> int:
         """
         This function needs to be overridden on evaluator classes which define sub-evaluators in series_metric_evaluators.
 

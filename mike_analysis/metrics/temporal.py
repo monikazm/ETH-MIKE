@@ -3,8 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from mike_analysis.core.constants import TimeCol, ForceCol
-from mike_analysis.core.metric import TrialMetric, RowType, Scalar
+from mike_analysis.core.constants import TimeCol, ForceCol, RowDict
+from mike_analysis.core.metric import TrialMetric, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 from mike_analysis.precomputers.derivatives import ForceDerivative, AbsVelocity
 
@@ -18,7 +18,7 @@ class ForceReactionTime(TrialMetric):
     unit = time_unit
     requires = (ForceDerivative,)
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         first_reaction = trial_data[(precomputed[ForceDerivative] > 0.5) | (trial_data[ForceCol] > 2.0)]
         return first_reaction[TimeCol].iloc[0] if len(first_reaction.index) > 0 else np.inf
 
@@ -36,7 +36,7 @@ class MovementReactionTime(TrialMetric):
         abs_vel = abs_vel.iloc[:max_v_ind+1]
         return np.where(abs_vel >= 10.0)[0]
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         ind_start = self.get_indices_where_abs_vel_above_threshold_before_peak_vel_reached(precomputed[AbsVelocity])
         if len(ind_start) == 0:
             return np.inf

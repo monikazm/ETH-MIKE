@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mike_analysis.core.metric_evaluator import MetricEvaluator, RowType
+from mike_analysis.core.metric_evaluator import MetricEvaluator, RowDict
 from mike_analysis.metrics.positional import PositionError, AbsPositionError
 from mike_analysis.metrics.summary import DeltaRMSE, NumTrials
 
@@ -34,5 +34,5 @@ class PreciseReachingEvaluator(MetricEvaluator):
     )
 
     @classmethod
-    def get_series_idx(cls, db_trial_result: RowType) -> int:
+    def get_series_idx(cls, db_trial_result: RowDict) -> int:
         return db_trial_result['Flexion']

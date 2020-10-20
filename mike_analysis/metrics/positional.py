@@ -3,8 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from mike_analysis.core.constants import TPosCol, PosCol, TimeCol
-from mike_analysis.core.metric import TrialMetric, RowType, Scalar
+from mike_analysis.core.constants import TPosCol, PosCol, TimeCol, RowDict
+from mike_analysis.core.metric import TrialMetric, Scalar
 from mike_analysis.core.precomputer import PrecomputeDict
 from mike_analysis.precomputers.derivatives import AbsVelocity
 
@@ -19,7 +19,7 @@ class PositionError(TrialMetric):
     target_col: str
     actual_col: str
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         return db_trial_result[self.target_col] - db_trial_result[self.actual_col]
 
 
@@ -29,7 +29,7 @@ class AbsPositionError(PositionError):
     bigger_is_better = False
     unit = pos_unit
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         return abs(super().compute_single_trial(trial_data, precomputed, db_trial_result))
 
 
@@ -46,7 +46,7 @@ class AbsPositionErrorAtSteadyState(TrialMetric):
         abs_vel = abs_vel.iloc[max_v_ind+1:]
         return np.where(abs_vel >= 10.0)[0] + max_v_ind + 1
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         ind_large_v = self.get_indices_where_abs_vel_above_threshold_after_peak_vel_reached(precomputed[AbsVelocity])
 
         if len(ind_large_v) == 0:
@@ -71,7 +71,7 @@ class MinRom(TrialMetric):
     bigger_is_better = False
     unit = pos_unit
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         return trial_data[PosCol].min()
 
 
@@ -81,7 +81,7 @@ class MaxRom(TrialMetric):
     bigger_is_better = True
     unit = pos_unit
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         return trial_data[PosCol].max()
 
 
@@ -91,5 +91,5 @@ class Rom(TrialMetric):
     bigger_is_better = True
     unit = pos_unit
 
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         return abs(trial_data[PosCol].max() - trial_data[PosCol].min())
