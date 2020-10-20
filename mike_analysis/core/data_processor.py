@@ -146,8 +146,10 @@ class DataProcessor:
             missing_assess_for_user_hand = {(sess['SubjectNr'], sess['LeftHand']): {mode: 0 for mode in enabled_modes} for sess in
                                             incomplete_sessions}
             for sess in incomplete_sessions:
-                for t in sess['CompletedTasks'].split(','):
-                    missing_assess_for_user_hand[(sess['SubjectNr'], sess['LeftHand'])][Modes(int(t, 10))] += 1
+                completed = [Modes(int(t, 10)) for t in sess['CompletedTasks'].split(',')]
+                for mode in enabled_modes:
+                    if mode not in completed:
+                        missing_assess_for_user_hand[(sess['SubjectNr'], sess['LeftHand'])][mode] += 1
 
             with colored_print(TColor.WARNING):
                 for (patient, leftHand), missing_for_Mode in missing_assess_for_user_hand.items():
