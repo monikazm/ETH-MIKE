@@ -56,7 +56,7 @@ The precomputed value can then be accessed in the metric e.g. like this:
 class SomeMetric(TrialMetric):
     # ...
     requires = (Velocity,)
-    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowType) -> Scalar:
+    def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         velocity = precomputed[Velocity]
         # ...
 ```
@@ -82,7 +82,21 @@ To improve performance, all tdms files are processed in parallel.
 
 ## RedCap Importer
 
-TODO
+The RedCap importer is responsible for:
+1. Creating database tables which match the data model of the redcap project (i.e. 1 table per form/instrument with columns corresponding to the form fields)
+2. Downloading data from the RedCap REST (https) API
+
+To achieve 1. certain information about the data fields in the RedCap project is required.
+While some information cannot be inferred from the API (e.g. mapping of redcap form names to table names, name of the main identifier field, which columns to ignore...) and needs to be manually specified in [study_config.py], most of the necessary information is retrieved directly from RedCap (data dictionary, list of repeating events, etc.).
+
+The RedCap data_dictionary is used determine the field/columns names of the different forms.
+The data types of these columns are determined via some heuristics (e.g. based on the field type or text validation type). See the function `export_columns` in [redcap_api.py].
+
+What remains is to determine the primary key for each form table (i.e. fields which identify a single table row / form instance). In all cases, the main redcap record identifer is part of the primary key ('study_id' by default). If a form/instrument appears in multiple events of a longitudinal study, the `redcap_event_name` also needs to be included (and in case of repeating events or instruments also `redcap_repeat_instrument` or `redcap_repeat_instance`). All of this can be determined dynamically from the API.
+
+Example: Demographics form appears only in one event, no repetitions => `primary key == 'study_id'`. RoboticAssessment form appears in several events and is also part of at least one repeating event => `primary key == ('study_id', 'redcap_event_name', 'redcap_repeat_instance')`.
+
+For 2. the data can be retrieved using the RedCap `export_records` API, which returns one giant table with all the data for all forms from which the individual rows to insert into the database tables can then be extracted.
 
 ## The Big Picture
 
@@ -94,5 +108,9 @@ The metric evaluator iterates over all trial metric objects defined in its *tria
 
 If a metric evaluator has sub (series) evaluators defined in *series_metric_evaluators*, it uses the function *get_series_idx* (needs to be implemented when creating a new evaluator for a new assessment type with multiple series) to partition the raw data (lists with one element per trial -> lists with one element per trial of that series) and then adds the metrics which are obtained by running the corresponding sub-evaluators on the respective data partitions to its own metrics.
 
+Each metric evaluator returns a dictionary which maps metric names (prefixed with the evaluator's name) to the corresponding scalar metric values. For the top-level evaluator of a certain assessment type, this directly corresponds to the row to be inserted into the corresponding database result table, which is then done by the DataProcessor.
+
 
 [file_processing.py]: ../mike_analysis/core/file_processing.py
+[study_config.py]: ../mike_analysis/study_config.py
+[redcap_api.py]: ../mike_analysis/core/redcap_api.py

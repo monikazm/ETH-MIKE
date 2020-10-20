@@ -99,9 +99,12 @@ class RedcapImporter:
             data_col_names = [name for name, _ in columns.data_cols]
             all_col_names = [name for name, _ in columns.key_cols] + data_col_names
 
-            # NULL handling (remove rows where all data except key columns null,
-            # replace nulls in key columns with default value, replace remaining NA with None)
+            # Extract relevant columns (for the current form)
+            # Remove rows which do not contain any data for the current form
+            # (Not all redcap records contain data for all forms)
             form_data = data.loc[:, all_col_names].dropna(how='all', subset=data_col_names)
+
+            # Replace NULLs in key columns with 0/empty string (since primary key must not be NULL), in data columns with 'None'
             if RCCols.RepeatInst in form_data.columns:
                 form_data.loc[:, RCCols.RepeatInst].fillna(0, inplace=True)
             if RCCols.RepeatInstrument in form_data.columns:
