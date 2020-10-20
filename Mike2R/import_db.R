@@ -50,6 +50,15 @@ get_pretty_name <- function(metric) {
   return(paste(gsub("_", " ", metric)))
 }
 
+get_metric_info <- function(metric) {
+  m_info <- metric_info[metric_info$Name == metric,]
+  if (nrow(m_info) == 0) {
+    m_info <- data.frame("Name" = metric, "Unit" = "", "DataType" = NA,
+                         "BiggerIsBetter" = TRUE, "HealthyAvg" = NA, "SrdImpaired" = NA, "SrdNonImpaired" = NA)
+  }
+  return(m_info)
+}
+
 get_unit <- function(metric_info) {
   unit <- metric_info$Unit
   if (unit != '') unit <- paste0("[", unit, "]")
@@ -79,7 +88,8 @@ plot_srd_arrows <- function(srd, bigger_is_better, height, data_x, data_y) {
 
 # Low level metric line plotter
 plot_metric_for_all_series <- function(title, metric, series_data, series_names, series_srd_names, x_col = 'IthSession', show_std = FALSE) {
-  m_info <- metric_info[metric_info$Name == metric,]
+  m_info <- get_metric_info(metric)
+  healthy_avg <- m_info$HealthyAvg
   pretty_metric_name <- get_pretty_name(metric)
   pretty_name_with_unit <- paste(pretty_metric_name, get_unit(m_info))
 
@@ -92,6 +102,12 @@ plot_metric_for_all_series <- function(title, metric, series_data, series_names,
   max_x <- max(all_x, na.rm = TRUE)
   min_y <- min(all_y[is.finite(all_y)], na.rm = TRUE)
   max_y <- max(all_y[is.finite(all_y)], na.rm = TRUE)
+
+  if (!is.na(healthy_avg)) {
+    min_y <- min(healthy_avg, min_y)
+    max_y <- max(healthy_avg, max_y)
+  }
+
   delta_y <- max_y - min_y
   y_vals <- range(min_y - delta_y * 0.05, max_y + delta_y * 0.05)
   if (!m_info$BiggerIsBetter) {
@@ -106,7 +122,6 @@ plot_metric_for_all_series <- function(title, metric, series_data, series_names,
   legend('bottomright', inset = c(-0.15 - legend_len * 0.012, 0),
          legend = do.call(c, series_names), col = 1:n, lty = 1:n, lwd = 2, xpd = TRUE)
 
-  healthy_avg <- m_info$HealthyAvg
   if (!is.na(healthy_avg)) {
     abline(h = healthy_avg, col = "darkgreen", lwd = 2, lty = 1)
     text(max_x, healthy_avg, "healthy avg \U2191", col = "darkgreen", xpd = TRUE, adj = -0.5)
@@ -156,7 +171,7 @@ all_user_long_plot_metric <- function(metric) {
 
 # Box plot for a metric, comparing non impaired and impaired data
 box_plot_metric <- function(metric) {
-  m_info <- metric_info[metric_info$Name == metric,]
+  m_info <- get_metric_info(metric)
   pretty_metric_name <- get_pretty_name(metric)
   pretty_name_with_unit <- paste(pretty_metric_name, get_unit(m_info))
 

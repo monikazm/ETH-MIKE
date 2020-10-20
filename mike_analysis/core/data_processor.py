@@ -32,14 +32,14 @@ class DataProcessor:
                     CREATE TABLE "MetricInfo" (
                         "Id" integer primary key not null,
                         "Name" varchar not null UNIQUE,
-                        "TaskType" integer not null,
+                        "DataType" integer not null,
                         "BiggerIsBetter" integer not null,
                         "Unit" varchar not null,
                     ''' + ',\n'.join([f'"{col}" numeric' for col in additional_columns]) + ')'
         self.migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         # Insert metric metadata
-        self.out_conn.executemany('INSERT OR IGNORE INTO "MetricInfo" (Name, TaskType, BiggerIsBetter, Unit) '
+        self.out_conn.executemany('INSERT OR IGNORE INTO "MetricInfo" (Name, DataType, BiggerIsBetter, Unit) '
                                   'VALUES (?, ?, ?, ?)', [val for vals in self.metric_meta.values() for val in vals])
 
         # Read optional healthy avg and Srds from csv file in current working directory
@@ -108,19 +108,20 @@ class DataProcessor:
 
         all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values() for name in metric_col_names]
         metric_names = ', '.join(f'MAX({metric}) AS {metric}' for metric in all_metric_col_names)
-        null_checks = ' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
+        not_null_checks = ' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
         patient_columns = self.migrator.out_get_all_columns_except(Tables.Patient, ('SubjectNr', 'PatientId'))
 
         session_result_view_name = 'SessionResult'
         create_combined_session_result_stmt = f'''
-            CREATE VIEW {session_result_view_name} AS
-                SELECT P.SubjectNr, PS.PatientId, PS.LeftHand, PS.IthSession, PS.SessionStartDate,
+            CREATE VIEW "{session_result_view_name}" AS
+                SELECT P.SubjectNr, PS.LeftHand, PS.IthSession, PS.SessionStartDate,
+                    ((PS.LeftHand AND P.LeftImpaired) OR (NOT PS.LeftHand AND P.RightImpaired)) AS impaired,
                     {", ".join([f"P.{patient_column}" for patient_column in patient_columns])},
                     {metric_names}
                 FROM PseudoSession AS PS
                 JOIN Patient AS P USING(PatientId)
                 {combined_session_result_stmt_joins}
-                WHERE {null_checks}
+                WHERE {not_null_checks}
                 GROUP BY P.PatientId, PS.LeftHand, PS.IthSession
                 ORDER BY P.SubjectNr, PS.LeftHand, PS.IthSession
         '''
