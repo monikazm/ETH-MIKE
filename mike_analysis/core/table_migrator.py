@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from typing import List
+from typing import List, Iterable
 
 
 class TableMigrator:
@@ -69,6 +69,10 @@ class TableMigrator:
                 self.out_conn.execute(create_elem_stmt_in)
 
     def migrate_table_data(self, table_name: str, filter_cond: str = ''):
+        """
+        Copy all rows which satisfy filter_cond (if any) and do not already exist from table 'table_name' in the input database
+        to the table 'table_name' in the output database.
+        """
         entries = self.in_conn.execute(f'''
                 SELECT * FROM {table_name}
                 {(f"WHERE {filter_cond}" if filter_cond else "")}
@@ -78,5 +82,24 @@ class TableMigrator:
             self.out_conn.executemany(f'INSERT OR IGNORE INTO {table_name} VALUES ({placeholder})', entries)
         self.out_conn.commit()
 
-    def out_get_all_columns_except(self, table, ignore_list) -> List[str]:
+    def out_get_all_columns_except(self, table: str, ignore_list: Iterable[str]) -> List[str]:
+        """Return list of columns in table 'table' without columns in ignore_list."""
         return [elem[1] for elem in self.out_conn.execute(f'PRAGMA table_info({table});').fetchall() if elem[1] not in ignore_list]
+
+    def columns_except(self, table: str, alias: str, ignore_list: Iterable[str]) -> str:
+        """
+        Return comma separated list of all column names (qualified by alias, e.g. {alias}.col1) from 'table' which are not in ignore_list.
+
+        e.g. columns_except('Patient', 'P', ['PatientId', 'SubjectNr']) == 'P.Age, P.LeftImpaired, P.RightImpaired, ...'
+
+        This function is useful when building a database query where you want to include all columns of a table EXCEPT some columns
+        (cannot use wildcard * in that case).
+
+        :param table: table in output database from which to take columns
+        :param alias: will get prepended to column names (e.g. '{alias}.Col1, {alias}.Col2'),
+                      can be empty string ('') to return unqualified column names ('Col1, Col2').
+        :param ignore_list: List of column names which should be excluded from the result
+        :return: comma separated list of selected (qualified) column names
+        """
+        prefix = f'{alias}.' if alias else ''
+        return ', '.join([f'{prefix}{col}' for col in self.out_get_all_columns_except(table, ignore_list)])

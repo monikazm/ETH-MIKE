@@ -17,59 +17,51 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
 
     # Create additional views
     if migrator.out_has_tables([val[0] for _, val in REDCAP_NAMES_AND_INDEX_COLS.items()]):
-        patient_cols = migrator.out_get_all_columns_except('Patient', ['SubjectNr', 'PatientId'])
-        demo_cols = migrator.out_get_all_columns_except('Demographics', [REDCAP_RECORD_IDENTIFIER, 'subject_code'])
-
-        def create_redcap_view(view_name, impairedness_match_column):
-            return f'''
+        def create_redcap_view(view_name, where_cond):
+            return view_name, f'''
                 CREATE VIEW "{view_name}" AS
                     SELECT ROW_NUMBER() OVER (PARTITION BY {REDCAP_RECORD_IDENTIFIER} ORDER BY robotic_session_number ASC) AS IthSession, *
                     FROM RoboticAssessment
                     LEFT JOIN ClinicalAssessment USING({REDCAP_RECORD_IDENTIFIER}, {RCCols.EventName})
                     LEFT JOIN Neurophysiology USING({REDCAP_RECORD_IDENTIFIER}, {RCCols.EventName})
-                    WHERE {impairedness_match_column} IS TRUE
+                    WHERE {where_cond}
             '''
-        impaired_view_name = 'ImpairedAssessment'
-        migrator.create_or_update_table_index_or_view_from_stmt(create_redcap_view(impaired_view_name, 'measured_hand___1'))
-        non_impaired_view_name = 'NonImpairedAssessment'
-        migrator.create_or_update_table_index_or_view_from_stmt(create_redcap_view(non_impaired_view_name, 'measured_hand___2'))
+        impaired_rc_view, create_stmt = create_redcap_view('RedCapDataImpaired', where_cond='measured_hand___1')
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
+        non_impaired_rc_view, create_stmt = create_redcap_view('RedCapDataNonImpaired', where_cond='measured_hand___2')
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
-        def create_full_data_view(view_name, redcap_view, impairedness_cond):
-            redcap_view_cols = ",\n".join([f'V.{col}' for col in
-                                           migrator.out_get_all_columns_except(redcap_view, [REDCAP_RECORD_IDENTIFIER, RCCols.EventName,
-                                                                                             RCCols.RepeatInst, 'IthSession'])])
-            return f'''
+        def create_full_data_view(view_name, redcap_view, where_cond):
+            return view_name, f'''
             CREATE VIEW "{view_name}" AS
                 SELECT R.SubjectNr, R.LeftHand, R.IthSession, R.SessionStartDate,
                     D.{REDCAP_RECORD_IDENTIFIER}, V.{RCCols.EventName}, V.{RCCols.RepeatInst},
-                    {", ".join([f"R.{patient_column}" for patient_column in patient_cols])},
-                    {", ".join([f"D.{demo_col}" for demo_col in demo_cols])},
-                    {redcap_view_cols},
+                    {migrator.columns_except('Patient', 'R', ['SubjectNr', 'PatientId'])},
+                    {migrator.columns_except('Demographics', 'D', [REDCAP_RECORD_IDENTIFIER, 'subject_code'])},
+                    {migrator.columns_except(redcap_view, 'V', [REDCAP_RECORD_IDENTIFIER, RCCols.EventName, RCCols.RepeatInst, 'IthSession'])},
                     {metric_names}
                 FROM SessionResult AS R
                 LEFT JOIN Demographics AS D ON(D.subject_code == R.SubjectNr)
                 LEFT JOIN {redcap_view} AS V USING({REDCAP_RECORD_IDENTIFIER}, IthSession)
-                WHERE {impairedness_cond}
+                WHERE {where_cond}
         '''
-        data_impaired_view_name = 'DataImpaired'
-        migrator.create_or_update_table_index_or_view_from_stmt(
-            create_full_data_view(data_impaired_view_name, impaired_view_name,
-                                  '(R.LeftHand AND R.LeftImpaired) OR (NOT R.LeftHand AND R.RightImpaired)')
-        )
-        data_non_impaired_view_name = 'DataNonImpaired'
-        migrator.create_or_update_table_index_or_view_from_stmt(
-            create_full_data_view(data_non_impaired_view_name, non_impaired_view_name,
-                                  '(R.LeftHand AND NOT R.LeftImpaired) OR (NOT R.LeftHand AND NOT R.RightImpaired)')
-        )
+        data_impaired_view, create_stmt = \
+            create_full_data_view('DataImpaired', impaired_rc_view,
+                                  where_cond='(R.LeftHand AND R.LeftImpaired) OR (NOT R.LeftHand AND R.RightImpaired)')
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
+        data_non_impaired_view, create_stmt = \
+            create_full_data_view('DataNonImpaired', impaired_rc_view,
+                                  where_cond='(R.LeftHand AND NOT R.LeftImpaired) OR (NOT R.LeftHand AND NOT R.RightImpaired)')
+        migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
         name = 'DataFull'
         create_stmt = f'''
             CREATE VIEW "{name}" AS
                 SELECT 1 AS impaired, *
-                FROM {data_impaired_view_name}
+                FROM {data_impaired_view}
                 UNION ALL
                 SELECT 0 AS impaired, *
-                FROM {data_non_impaired_view_name}
+                FROM {data_non_impaired_view}
                 ORDER BY SubjectNr, LeftHand, IthSession
         '''
         migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
