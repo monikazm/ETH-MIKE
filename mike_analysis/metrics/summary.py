@@ -39,7 +39,7 @@ class DeltaRMSE(SummaryMetric):
 
 
 @dataclass
-class NrOfTrialsWithoutReachingTarget(SummaryMetric):
+class TrialsWithoutReachingTargetPerc(SummaryMetric):
     name = 'TrialsWhereTargetNotReachedPerc'
     d_type = DTypes.DOUBLE
     bigger_is_better = False

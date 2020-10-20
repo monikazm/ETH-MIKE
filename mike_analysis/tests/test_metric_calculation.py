@@ -6,7 +6,14 @@ import pandas as pd
 
 from mike_analysis.core.constants import TimeCol, PosCol, ForceCol
 from mike_analysis.metrics.motor import MaxVelocity, MAPR, MaxForce, NIJ
+from mike_analysis.metrics.positional import PositionError, AbsPositionError, AbsPositionErrorAtSteadyState, MinRom, MaxRom, Rom
+from mike_analysis.metrics.sensorimotor import RMSError, MeanAbsPeakdiff, StdPeakAmplitude
+from mike_analysis.metrics.summary import DeltaRMSE, NumTrials, TrialsWithoutReachingTargetPerc
+from mike_analysis.metrics.temporal import ForceReactionTime, MovementReactionTime
 from mike_analysis.precomputers.derivatives import AbsVelocity
+
+TCol = 'target'
+ICol = 'indicated'
 
 
 class MetricTests(unittest.TestCase):
@@ -45,51 +52,73 @@ class MetricTests(unittest.TestCase):
     # Positional
 
     def test_pos_error(self):
-        raise NotImplementedError()
+        metric = PositionError(TCol, ICol)
+        self.assertAlmostEqual(metric.compute_single_trial(None, None, {TCol: 60.2, ICol: 20.1}), 40.1)
+        self.assertEqual(metric.compute_single_trial(None, None, {TCol: 60.2, ICol: 0}), 60.2)
+        self.assertAlmostEqual(metric.compute_single_trial(None, None, {TCol: 60.2, ICol: -10.562}), 60.2 - (-10.562))
+        self.assertEqual(metric.compute_single_trial(None, None, {TCol: 60.2, ICol: 60.2}), 0)
+        self.assertAlmostEqual(metric.compute_single_trial(None, None, {TCol: 60.236, ICol: 100.134}), 60.236 - 100.134)
 
     def test_abs_pos_error(self):
-        raise NotImplementedError()
+        metric = AbsPositionError(TCol, ICol)
+        self.assertAlmostEqual(metric.compute_single_trial(None, None, {TCol: 60.2, ICol: 20.1}), 40.1)
+        self.assertEqual(metric.compute_single_trial(None, None, {TCol: 60.2, ICol: 0}), 60.2)
+        self.assertAlmostEqual(metric.compute_single_trial(None, None, {TCol: 60.2, ICol: -10.562}), 60.2 - (-10.562))
+        self.assertEqual(metric.compute_single_trial(None, None, {TCol: 60.2, ICol: 60.2}), 0)
+        self.assertAlmostEqual(metric.compute_single_trial(None, None, {TCol: 60.236, ICol: 100.134}), abs(60.236 - 100.134))
 
     def test_abs_pos_error_at_ss(self):
+        metric = AbsPositionErrorAtSteadyState()
         raise NotImplementedError()
 
     def test_min_rom(self):
+        metric = MinRom()
         raise NotImplementedError()
 
     def test_max_rom(self):
+        metric = MaxRom()
         raise NotImplementedError()
 
     def test_rom(self):
+        metric = Rom()
         raise NotImplementedError()
 
     # Sensorimotor
 
     def test_rmse(self):
+        metric = RMSError()
         raise NotImplementedError()
 
     def test_mean_abs_peakdiff(self):
+        metric = MeanAbsPeakdiff()
         raise NotImplementedError()
 
     def test_std_peak_amplitude(self):
+        metric = StdPeakAmplitude()
         raise NotImplementedError()
 
     # Temporal
 
     def test_force_rt(self):
+        metric = ForceReactionTime()
         raise NotImplementedError()
 
     def test_movement_rt(self):
+        metric = MovementReactionTime()
         raise NotImplementedError()
 
     # Summary
 
     def test_num_trials(self):
+        metric = NumTrials()
         raise NotImplementedError()
 
     def test_pos_match_rmse(self):
+        metric = DeltaRMSE('', '')
         raise NotImplementedError()
 
     def test_nr_no_target_trials(self):
+        metric = TrialsWithoutReachingTargetPerc()
         raise NotImplementedError()
 
     @staticmethod
