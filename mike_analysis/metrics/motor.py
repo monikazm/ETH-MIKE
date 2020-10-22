@@ -45,6 +45,8 @@ class MAPR(TrialMetric):
 
     def compute_single_trial(self, trial_data: pd.DataFrame, precomputed: PrecomputeDict, db_trial_result: RowDict) -> Scalar:
         abs_vel = precomputed[AbsVelocity]
+        if sum(abs_vel < 0.05) > 0.9 * len(abs_vel):
+            return 1.0
         v_thresh = 0.2 * abs_vel.mean()
         mapr = (abs_vel < v_thresh).sum() / float(len(trial_data))
         return mapr
