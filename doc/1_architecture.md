@@ -24,7 +24,7 @@ A Metric Evaluator class defines which metrics are to be computed for a particul
 
 During evaluation, the evaluator receives three lists as input, which have as many elements as there are assessment trials which need to be processed by this evaluator.
 - all_trials: List of data frames which contain the preprocessed (filtered position, rows with TargetState=False removed, Time starts at 0.0) raw data for each trial
-- all_precomputed: List of dictionaries which map Precomputer objects to their corresponding precomputed columns/values (see [Precomputer](#Precomputer)) for each trial
+- all_precomputed: List of dictionaries which map Precomputer objects to their corresponding precomputed columns/values (see [Precomputer](#precomputer)) for each trial
 - db_results: List which contains for each trial a dictionary with data from the frontend database's result table corresponding to the assessment's type. Which columns are included in this data depends on the evaluator's `db_result_columns_to_select` field, which specifies the columns to SELECT from the table. A Metric Evaluator should include all columns in this field, which either cannot be inferred from the raw TDMS data (e.g. `indicated` position value from the `PositionMatchResult` table) or which are required to determine to which data series the trial belongs (e.g. `Flexion` column for `ForceResult` table).
 
 #### Metric Computation
