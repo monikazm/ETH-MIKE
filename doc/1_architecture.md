@@ -7,9 +7,9 @@
 A Metric class defines how a certain metric is computed.
 There are four different kinds of metrics:
 - **Trial Metric**: A metric which is computed for every single trial. Each `TriaMetric` subclass has to implement a function which gets as input the raw data corresponding to a single trial (with Time starting at 0.0, only rows of the same trial and where TargetState == True) and produces a single scalar value as output.  
- *Example*: Maximum Force
+ *Examples*: Maximum Force, NIJ
 - **Aggregate Metric**: An aggregate metric takes trials metric values for all trials as input and produces a single scalar value for each trial metric.  
-  *Example*: Mean
+  *Examples*: Mean, StdTop3
 - **Summary Metric**: A metric which is computed based on all trials. Each `SummaryMetric` subclass has to implement a function which gets as input the raw data corresponding to all trials and produces a single scalar value.  
   *Example*: Position Matching RMSE
 - **Diff Metric**: A special metric type which takes two aggregated trial (i.e. with e.g. "Mean" suffix), summary or diff metric names as input and returns the difference between those two metrics as a new metric.
@@ -28,14 +28,11 @@ During evaluation, the evaluator receives three lists as input, which have as ma
 - db_results: List which contains for each trial a dictionary with data from the frontend database's result table corresponding to the assessment's type. Which columns are included in this data depends on the evaluator's `db_result_columns_to_select` field, which specifies the columns to SELECT from the table. A Metric Evaluator should include all columns in this field, which either cannot be inferred from the raw TDMS data (e.g. `indicated` position value from the `PositionMatchResult` table) or which are required to determine to which data series the trial belongs (e.g. `Flexion` column for `ForceResult` table).
 
 #### Metric Computation
-The evaluator will build a data frame (rows == trials, columns == metrics), which contains for each `TrialMetric` in its `trial_metrics` field, a corresponding computed metric value for each trial.  
-*Examples* (trial metric): MaxForce, RangeOfMotion, NIJ, ...
+1. The evaluator will build a data frame (rows == trials, columns == metrics), which contains for each `TrialMetric` in its `trial_metrics` field, a corresponding computed metric value for every trial.
 
-This data frame is then used as input to all `AggregateMetrics` in `aggregator_metrics`, to obtain one scalar aggregate value per `AggregateMetric` and `TrialMetric` combination. If `aggregator_metrics` is not redefined, the default aggregate metrics `Mean` and `Std` are used.  
-*Examples* (aggregate metrics): Mean, Std, MeanTop3, ...
+2. This data frame is then used as input to all `AggregateMetrics` in `aggregator_metrics`, to obtain one scalar aggregate value per `AggregateMetric` and `TrialMetric` combination. If `aggregator_metrics` is not redefined, the default aggregate metrics `Mean` and `Std` are used.
 
-The evaluator then also computes all `summary_metrics` using the data for all trials as input (*Examples*: RMSE in position matching, PercentageOfTrialsWithTargetNotReached for target reaching), and all `diff_metrics`, 
-which compute the absolute difference between two of the other metrics (*Example*: Difference between active and passive ROM).
+3. The evaluator then also computes all `summary_metrics` using the data for all trials as input (*Examples*: RMSE in position matching, PercentageOfTrialsWithTargetNotReached for target reaching), and all `diff_metrics`, which compute the absolute difference between two of the other metrics (*Example*: Difference between active and passive ROM).
 
 #### Delegation for sub data-series (e.g. Flexion/Extension)
 An evaluator can also delegate metric computation for subsets of the trials to different sub/"series" evaluators. This is useful if you want to compute metrics separately for some of the trials (e.g. You want different means for flexion/extension trials, or you want a different set of metrics for active/passive/automatic range of motion).
@@ -43,9 +40,9 @@ An evaluator can also delegate metric computation for subsets of the trials to d
 This works by specifying the evaluator objects for the different series (e.g. Flexion/Extension) in the `series_metric_evaluators` list field.
 You then have to implement the function `get_series_idx` which should return for any trial (or rather for any `db_result`), the index of the evaluator in `series_metric_evaluator` which should be used to process that particular trial.
 
-The evaluator then splits the trials into subsets and uses each sub/series evaluator to compute the metrics of the corresponding subset.
+At runtime, the evaluator then splits the trials into subsets according to `get_series_idx` and uses each sub/series evaluator to compute the metrics of the corresponding subset.
 
-Each evaluator returns all its computed metrics values (including those computed by sub/series evaluators) in the form of a dictionary which maps metric names (prepended with the evaluator's name) to the corresponding metric values.
+Each evaluator returns all its computed summary, diff and aggregated trial metric values (including those computed by sub/series evaluators) in the form of a dictionary which maps metric names (prepended with the evaluator's name) to the corresponding metric values.
 
 ### Defining a new MetricEvaluator
 Most of the evaluation logic is contained in the base class `MetricEvaluator` and does not have to be touched. Concrete evaluators are thus created in a mostly declarative way.
