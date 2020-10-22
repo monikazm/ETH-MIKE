@@ -75,6 +75,10 @@ long_plot_metric <- function(user, metric, show_std = TRUE) {
     }
   }
 
+  if (!m_info$BiggerIsBetter) {
+    graph <- graph + scale_y_reverse()
+  }
+
   # for srd arrows
   # need to build frame first with x and y of arrows
   # graph + geom_segment(data=, aes(x=x, xend=x, y=y_cent - y_offset * 0.5, yend=y_cent + y_offset, colour=arrow_col))
@@ -101,6 +105,10 @@ update_plot <- function(metric, start_date = '2020-10-02', end_date = '2020-10-0
 
   ## Create plot
   graph <- ggplot(subset(metric_data, in_range == TRUE), aes_string(x = "IthSession", y = metric, color = "SubjectNr"))
+
+  if (!m_info$BiggerIsBetter) {
+    graph <- graph + scale_y_reverse()
+  }
 
   # Add gray lines for series out of date range
   for (val in group_split(metric_data)) {
