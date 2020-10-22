@@ -50,7 +50,7 @@ def create_additional_views(migrator: TableMigrator, metric_names: str):
                                   where_cond='(R.LeftHand AND R.LeftImpaired) OR (NOT R.LeftHand AND R.RightImpaired)')
         migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
         data_non_impaired_view, create_stmt = \
-            create_full_data_view('DataNonImpaired', impaired_rc_view,
+            create_full_data_view('DataNonImpaired', non_impaired_rc_view,
                                   where_cond='(R.LeftHand AND NOT R.LeftImpaired) OR (NOT R.LeftHand AND NOT R.RightImpaired)')
         migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
 
