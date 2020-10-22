@@ -55,7 +55,7 @@ class MetricEvaluator(metaclass=ABCMeta):
             precompute_dependencies.update(computer._get_precompute_dependencies_impl())
 
         # Include precompute requirements of metrics from this evaluator
-        for metric in self.trial_metrics + self.diff_metrics + self.summary_metrics + self.aggregator_metrics:
+        for metric in self.trial_metrics + self.summary_metrics + self.aggregator_metrics:
             for dependency in metric.requires:
                 dependency.add_to(precompute_dependencies)
         return precompute_dependencies
@@ -84,14 +84,14 @@ class MetricEvaluator(metaclass=ABCMeta):
         # Return metadata with evaluator name prepended to metric name
         return [(f'{self.name_prefix}_{name}', d_type, big_is_better, unit) for name, d_type, big_is_better, unit in result_columns]
 
-    def compute_assessment_metrics(self, all_trials: List[pd.DataFrame], precomputed_vals: List[PrecomputeDict], db_results: List[RowDict]) -> Dict[str, Scalar]:
+    def compute_assessment_metrics(self, all_trials: List[pd.DataFrame], all_precomputed: List[PrecomputeDict], db_results: List[RowDict]) -> Dict[str, Scalar]:
         """
         Compute metrics for all the supplied trials.
 
         The three list parameters must have the same length and the elements at the same index should correspond to the same trial.
         :param all_trials: List of dataframes, where each dataframe contains the raw_data of one trial
                            (time starting at 0.0 and only rows where target state = 1)
-        :param precomputed_vals: List of precompute dictionaries which map Precomputer -> Precomputed value/colum (one dict per trial)
+        :param all_precomputed: List of precompute dictionaries which map Precomputer -> Precomputed value/colum (one dict per trial)
         :param db_results: List of dictionaries (one per trial) where each dictionary maps the keys in db_result_columns_to_select
                            to the corresponding values from the frontend database's result table for the assessment mode to which this
                            evaluator belongs.
@@ -112,17 +112,17 @@ class MetricEvaluator(metaclass=ABCMeta):
                 # Recursively call series metric evaluator to compute series results,
                 # itertools.compress function is used to only select those trials where series mask is true
                 computed_metrics_for_series = series_evaluator.compute_assessment_metrics(list(compress(all_trials, series_mask)),
-                                                                                          list(compress(precomputed_vals, series_mask)),
+                                                                                          list(compress(all_precomputed, series_mask)),
                                                                                           list(compress(db_results, series_mask)))
                 result_dict.update(computed_metrics_for_series)
 
         # Compute summary metric
         for summary_metric in self.summary_metrics:
-            value = summary_metric.compute_across_trials(all_trials, precomputed_vals, db_results)
+            value = summary_metric.compute_across_trials(all_trials, all_precomputed, db_results)
             result_dict[summary_metric.name] = value
 
         # Compute trial metrics
-        metric_values_for_trials = pd.DataFrame({metric.name: metric.compute_for_all_trials(all_trials, precomputed_vals, db_results)
+        metric_values_for_trials = pd.DataFrame({metric.name: metric.compute_for_all_trials(all_trials, all_precomputed, db_results)
                                                  for metric in self.trial_metrics})
 
         # Compute aggregate metrics

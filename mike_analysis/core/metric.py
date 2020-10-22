@@ -161,15 +161,15 @@ class TrialMetric(Metric, metaclass=ABCMeta):
 
 
 @dataclass
-class DiffMetric(Metric):
-    """Metric comparing two different aggregate values"""
-    d_type: ClassVar[str] = DTypes.DOUBLE
-    bigger_is_better: ClassVar[bool]
-    unit: ClassVar[str]
-
+class DiffMetric:
+    """Special Metric comparing two different aggregate values"""
     # Names of the two metrics from which to take the absolute difference (names are without name prefix of the current evaluator)
     src_metric1: str
     src_metric2: str
+
+    d_type: str = DTypes.DOUBLE
+    bigger_is_better: bool = True
+    unit: str = ''
 
     @property
     def name(self) -> str:

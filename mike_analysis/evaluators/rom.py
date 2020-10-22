@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from mike_analysis.core.metric import DiffMetric
 from mike_analysis.core.metric_evaluator import RowDict, MetricEvaluator
 from mike_analysis.metrics.motor import MaxForce
 from mike_analysis.metrics.positional import MinRom, MaxRom, Rom
@@ -41,6 +42,9 @@ class RomEvaluator(MetricEvaluator):
         _RomActivePassiveSeriesEvaluator('Passive'),
         _RomAutomaticPassiveSeriesEvaluator('Auto'),
     )
+
+    diff_metrics = (DiffMetric(f'Active_{MaxRom.name}_Mean', f'Passive_{MaxRom.name}_Mean', bigger_is_better=False, unit='deg'),
+                    DiffMetric(f'Active_{Rom.name}_Mean', f'Passive_{Rom.name}_Mean', bigger_is_better=False, unit='deg'))
 
     @classmethod
     def get_series_idx(cls, db_trial_result: RowDict) -> int:
