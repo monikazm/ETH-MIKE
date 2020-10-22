@@ -6,33 +6,61 @@
 ## Metric
 A Metric class defines how a certain metric is computed.
 There are four different kinds of metrics:
-- **Trial Metric**: A metric which is computed for every single trial. Each TriaMetric subclass has to implement a function which gets as input the raw data corresponding to a single trial (with Time starting at 0.0, only rows of the same trial and where TargetState == True) and produces a single scalar value as output. Example: Maximum Force
-- **Aggregate Metric**: An aggregate metric takes trials metric values for all trials as input and produces a single scalar value for each trial metric. Example: Mean
-- **Summary Metric**: A metric which is computed based on all trials. Each SummaryMetric subclass has to implement a function which gets as input the raw data corresponding to all trials and produces a single scalar value. Example: Position Matching RMSE
+- **Trial Metric**: A metric which is computed for every single trial. Each `TriaMetric` subclass has to implement a function which gets as input the raw data corresponding to a single trial (with Time starting at 0.0, only rows of the same trial and where TargetState == True) and produces a single scalar value as output.  
+ *Example*: Maximum Force
+- **Aggregate Metric**: An aggregate metric takes trials metric values for all trials as input and produces a single scalar value for each trial metric.  
+  *Example*: Mean
+- **Summary Metric**: A metric which is computed based on all trials. Each `SummaryMetric` subclass has to implement a function which gets as input the raw data corresponding to all trials and produces a single scalar value.  
+  *Example*: Position Matching RMSE
 - **Diff Metric**: A special metric type which takes two aggregated trial (i.e. with e.g. "Mean" suffix), summary or diff metric names as input and returns the difference between those two metrics as a new metric.
 
-It is possible to add new metrics to the system by implementing additional TrialMetric/AggregateMetric/SummaryMetric subclasses.
+It is possible to add new metrics to the system by implementing additional `TrialMetric/AggregateMetric/SummaryMetric` subclasses.
 
 ## Metric Evaluator
 
-For each assessment mode, a hierarchy of metric evaluators (main evaluator + optional series evaluators in case of multiple series) is used to define how metrics are computed for assessments of that type.
+A Metric Evaluator class defines which metrics are to be computed for a particular assessment mode (e.g. Force, Range of Motion) or subseries of an assessment mode (e.g. Flexion/Extension for Force, Active/Passive/Auto for ROM).
 
-When defining a new MetricEvaluator, the fields `trial_metrics`, `diff_metrics` and `summary_metrics` can be used to define the list of Trial/Diff/Summary metrics which should be evaluated for all trial data passed into that evaluator.
-If one of those lists is not assigned, it is assumed to be empty.
+### Evaluation Logic
 
-There is an additional field `aggregator_metrics`, which can be set if it is necessary to override the default aggregator metrics (Mean, StdDev) which are used to aggregate the trial metric values over all trials.
+During evaluation, the evaluator receives three lists as input, which have as many elements as there are assessment trials which need to be processed by this evaluator.
+- all_trials: List of data frames which contain the preprocessed (filtered position, rows with TargetState=False removed, Time starts at 0.0) raw data for each trial
+- all_precomputed: List of dictionaries which map Precomputer objects to their corresponding precomputed columns/values (see [Precomputer](#Precomputer)) for each trial
+- db_results: List which contains for each trial a dictionary with data from the frontend database's result table corresponding to the assessment's type. Which columns are included in this data depends on the evaluator's `db_result_columns_to_select` field, which specifies the columns to SELECT from the table. A Metric Evaluator should include all columns in this field, which either cannot be inferred from the raw TDMS data (e.g. `indicated` position value from the `PositionMatchResult` table) or which are required to determine to which data series the trial belongs (e.g. `Flexion` column for `ForceResult` table).
 
-Since some of the metrics might require data which is only present in the frontend database and not in the tdms files (e.g. position matching indicated position), it is possible to specify the list of column names to import from the assessment mode's result table in the frontend database via the `db_result_columns_to_select` field.
-The `DataProcessor` will automatically collect those column values from the input database (as list of dictionaries, one element per trial, each dictionary maps column names to the corresponding values) and the `process_tdms` function later passes this information along to the evaluator, which passes it to the metrics (db_trial_results parameter).
+#### Metric Computation
+The evaluator will build a data frame (rows == trials, columns == metrics), which contains for each `TrialMetric` in its `trial_metrics` field, a corresponding computed metric value for each trial.  
+*Examples* (trial metric): MaxForce, RangeOfMotion, NIJ, ...
 
-Each MetricEvaluator can reference multiple sub/series evaluators using the field `series_metric_evaluators`. In that case, the function get_series_idx should be overridden to return for each db_trial_result (above mentioned dict with columns from frontend result table) the index of the matching evaluator in `series_metric_evaluators` which should process that trial.
+This data frame is then used as input to all `AggregateMetrics` in `aggregator_metrics`, to obtain one scalar aggregate value per `AggregateMetric` and `TrialMetric` combination. If `aggregator_metrics` is not redefined, the default aggregate metrics `Mean` and `Std` are used.  
+*Examples* (aggregate metrics): Mean, Std, MeanTop3, ...
 
-The actual evaluation logic is implemented in the MetricEvaluator base class.
-The `compute_assessment_metrics` function of each evaluator gets the data for all trials it needs to process as input (raw tdms data, precomputed dictionary (see below) and db_trial_result).
-For each series evaluator in `series_metric_evaluators`, the metrics corresponding to the series are computed by calling that evaluators `compute_assessment_metrics` function with all trials as input for which get_series_idx(db_trial_result) matches the evaluators index in the list.
-The evaluator then computes the metrics which are defined in its own metric lists and adds them to the metrics obtained from the sub series evaluators.
+The evaluator then also computes all `summary_metrics` using the data for all trials as input (*Examples*: RMSE in position matching, PercentageOfTrialsWithTargetNotReached for target reaching), and all `diff_metrics`, 
+which compute the absolute difference between two of the other metrics (*Example*: Difference between active and passive ROM).
 
-The final metric values are returned as a dictionary which maps metric name (with evaluator name prepended) to the corresponding scalar metric value.
+#### Delegation for sub data-series (e.g. Flexion/Extension)
+An evaluator can also delegate metric computation for subsets of the trials to different sub/"series" evaluators. This is useful if you want to compute metrics separately for some of the trials (e.g. You want different means for flexion/extension trials, or you want a different set of metrics for active/passive/automatic range of motion).
+
+This works by specifying the evaluator objects for the different series (e.g. Flexion/Extension) in the `series_metric_evaluators` list field.
+You then have to implement the function `get_series_idx` which should return for any trial (or rather for any `db_result`), the index of the evaluator in `series_metric_evaluator` which should be used to process that particular trial.
+
+The evaluator then splits the trials into subsets and uses each sub/series evaluator to compute the metrics of the corresponding subset.
+
+Each evaluator returns all its computed metrics values (including those computed by sub/series evaluators) in the form of a dictionary which maps metric names (prepended with the evaluator's name) to the corresponding metric values.
+
+### Defining a new MetricEvaluator
+Most of the evaluation logic is contained in the base class `MetricEvaluator` and does not have to be touched. Concrete evaluators are thus created in a mostly declarative way.
+
+To define an evaluator for a new task, simply:
+1. Create a class which inherits from `MetricEvaluator`
+2. Define the name it should prepend to all metrics by specifying `name_prefix: str = 'YourNamePrefix'`
+3. List all columns which are needed from the frontend result table in `db_result_columns_to_select` (can also be SQL expressions, not just column names, as this will be used in the SELECT part of the query 1:1)
+4. Redefine `trial_metrics`, `summary_metrics`, `diff_metrics` and `aggregator_metics` as desired
+5. (only if there are multiple data series):
+    1. Repeat steps 1-4 for each series (you might be able to reuse a class for multiple series, if they share the same metrics)
+    2. Redefine `series_metric_evaluators` to include instances of these series metric evaluator classes (one per series).
+    3. Override the `get_series_idx` function such that it assigns trials to the correct series evaluator.  
+
+See existing [metric evaluators] implementations for examples.
 
 ## Precomputer
 
@@ -69,16 +97,16 @@ Finally, Precomputers classes can also have a `requires` field with which they c
 The DataProcessor is responsible for:
 1. Creating database tables to store the computed metrics
 2. Creating database views which make it easier to work with the data in an ad-hoc fashion (e.g. from an R console) or to export the data in a human-readable format
-3. Importing raw data, preprocessing the data (running [precomputers](#precomputer), changing sign for right-hand data, splitting into trials)) and obtaining metrics by running the mode-specific metric evaluator for every relevant tdms file
+3. Importing raw data, preprocessing the data (running [precomputers](#precomputer), changing sign for right-hand data, splitting into trials)) and obtaining metrics by running the mode-specific metric evaluator for every relevant TDMS file
 4. Storing the obtained metrics in the database
 
 The metric column names and types which are needed to create the tables in 1. are obtained from the respective root metric evaluator for each assessment mode.
 
-The list of relevant tdms file paths (i.e. tdms files corresponding to finished assessments) can be reconstructed from the assessment, patient and session metadata tables which are copied over from the frontend database.
+The list of relevant TDMS file paths (i.e. TDMS files corresponding to finished assessments) can be reconstructed from the assessment, patient and session metadata tables which are copied over from the frontend database.
 
-The helper functions used for importing and preprocessing individual tdms files are located in [file_processing.py].
+The helper functions used for importing and preprocessing individual TDMS files are located in [file_processing.py].
 
-To improve performance, all tdms files are processed in parallel.
+To improve performance, all TDMS files are processed in parallel.
 
 ## RedCap Importer
 
@@ -102,7 +130,7 @@ For 2. the data can be retrieved using the RedCap `export_records` API, which re
 
 main.py copies assessment, session and patient data from the frontend database, uses the RedcapImporter to download and parse the data from the RedCap API and the DataProcessor to process the TDMS files (import, preprocessing, metric computation).
 
-The DataProcessor loops over all relevant tdms files (1 tdms file == 1 assessment) and processes them in parallel (import and preprocessing using file_processing.py, metric computation using the MetricEvaluator corresponding to the assessment's mode).
+The DataProcessor loops over all relevant TDMS files (1 TDMS file == 1 assessment) and processes them in parallel (import and preprocessing using file_processing.py, metric computation using the MetricEvaluator corresponding to the assessment's mode).
 
 The metric evaluator iterates over all trial metric objects defined in its *trial_metrics* field and uses them to compute metric values for all trials. The trial metric values (1 per metric and trial) are passed into the aggregator metrics objects in *aggregator_metrics* to obtain the corresponding aggregate values (1 per metric). Similarly, the metric evaluator then also iterates over its *summary_metrics* and *diff_metrics* and uses them to compute the metrics they represent.
 
@@ -114,3 +142,4 @@ Each metric evaluator returns a dictionary which maps metric names (prefixed wit
 [file_processing.py]: ../mike_analysis/core/file_processing.py
 [study_config.py]: ../mike_analysis/study_config.py
 [redcap_api.py]: ../mike_analysis/core/redcap_api.py
+[metric evaluators]: ../mike_analysis/evaluators
