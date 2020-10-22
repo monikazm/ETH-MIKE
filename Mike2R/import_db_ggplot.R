@@ -93,6 +93,7 @@ update_plot <- function(metric, start_date = '2020-10-02', end_date = '2020-10-0
 
   # Limit to impaired results
   metric_data <- all_data[all_data$impaired == 1,]
+  metric_data <- metric_data[!is.na(metric_data$study_id),]
 
   # Exclude future results (results after end_date)
   metric_data <- metric_data[metric_data$SessionStartDate <= end_date,]
