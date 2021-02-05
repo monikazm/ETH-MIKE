@@ -60,6 +60,8 @@ class RedcapImporter:
         # and build corresponding tables
         form_columns = {}
         for form in redcap_columns:
+            if form not in study_cfg.REDCAP_NAMES_AND_INDEX_COLS:
+                continue
             key_cols = [(study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null')]
             form_events = form_to_event_map[form_to_event_map['form'] == form]['unique_event_name']
 
