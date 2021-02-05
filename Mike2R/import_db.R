@@ -241,3 +241,4 @@ pdfplot <- function(filename, plot_function, width = 10, height = 6) {
 # all_user_long_plot_metric("Rom_Active_ROM_Mean")
 # all_user_long_plot_metric("Rom_Passive_ROM_Mean")
 # all_user_long_plot_metric("Force_Flexion_MaxForce_Mean")
+# pdfplot("test",plot_all_metrics)
