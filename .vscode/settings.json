@@ -1,0 +1,14 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/manu/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/opt/openrobots/lib/python2.7/site-packages",
+        "/opt/raisim_build/lib"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/manu/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/opt/openrobots/lib/python2.7/site-packages",
+        "/opt/raisim_build/lib"
+    ]
+}
