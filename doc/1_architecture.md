@@ -6,7 +6,7 @@
 ## Metric
 A Metric class defines how a certain metric is computed.
 There are four different kinds of metrics:
-- **Trial Metric**: A metric which is computed for every single trial. Each `TriaMetric` subclass has to implement a function which gets as input the raw data corresponding to a single trial (with Time starting at 0.0, only rows of the same trial and where TargetState == True) and produces a single scalar value as output.  
+- **Trial Metric**: A metric which is computed for every single trial. Each `TrialMetric` subclass has to implement a function which gets as input the raw data corresponding to a single trial (with Time starting at 0.0, only rows of the same trial and where TargetState == True) and produces a single scalar value as output.  
  *Examples*: Maximum Force, NIJ
 - **Aggregate Metric**: An aggregate metric takes trials metric values for all trials as input and produces a single scalar value for each trial metric.  
   *Examples*: Mean, StdTop3
