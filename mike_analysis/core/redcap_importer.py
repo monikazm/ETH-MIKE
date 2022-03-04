@@ -12,7 +12,8 @@ from mike_analysis.core.table_migrator import TableMigrator
 
 
 class RedcapImporter:
-    ColumnCollection = namedtuple('ColumnCollection', ['key_cols', 'data_cols'])
+    ColumnCollection = namedtuple(
+        'ColumnCollection', ['key_cols', 'data_cols'])
 
     def __init__(self, table_migrator: TableMigrator, out_conn: sqlite3.Connection):
         self.migrator = table_migrator
@@ -27,18 +28,22 @@ class RedcapImporter:
         :param table_name: name of the table to create
         :param table_indices: list of column names for which an index should be created in the database
         """
-        redcap_column_defs = ',\n'.join([f'"{name}" {type_name}' for name, type_name in (columns.key_cols + columns.data_cols)])
-        comma_separated_key_column_names = ', '.join(f'"{col}"' for col, _ in columns.key_cols)
+        redcap_column_defs = ',\n'.join([f'"{name}" {type_name}' for name, type_name in (
+            columns.key_cols + columns.data_cols)])
+        comma_separated_key_column_names = ', '.join(
+            f'"{col}"' for col, _ in columns.key_cols)
         create_redcap_table_stmt = f'''
             CREATE TABLE "{table_name}" (
                 {redcap_column_defs},
                 PRIMARY KEY({comma_separated_key_column_names})
             )
         '''
-        self.migrator.create_or_update_table_index_or_view_from_stmt(create_redcap_table_stmt)
+        self.migrator.create_or_update_table_index_or_view_from_stmt(
+            create_redcap_table_stmt)
         for index in table_indices:
             index_name = index.replace(',', '_').replace(' ', '')
-            self.migrator.create_or_update_table_index_or_view_from_stmt(f'CREATE INDEX "{table_name}_{index_name}" ON {table_name} ({index})')
+            self.migrator.create_or_update_table_index_or_view_from_stmt(
+                f'CREATE INDEX "{table_name}_{index_name}" ON {table_name} ({index})')
 
     def _create_tables_from_redcap_metadata(self) -> Dict[str, ColumnCollection]:
         """
@@ -48,20 +53,26 @@ class RedcapImporter:
         :return: dictionary which maps form name -> tuple (List[key column names], List[other column names])
         """
         # Request datadict over API
-        redcap_columns = self.rc.export_columns(redcap_excluded_fields={study_cfg.REDCAP_RECORD_IDENTIFIER} | study_cfg.REDCAP_EXCLUDED_COLS)
+        redcap_columns = self.rc.export_columns(redcap_excluded_fields={
+                                                study_cfg.REDCAP_RECORD_IDENTIFIER} | study_cfg.REDCAP_EXCLUDED_COLS)
 
         # Request form and event metadata
         repeating_forms_and_events = self.rc.export_repeating_events()
-        repeating_events = repeating_forms_and_events[repeating_forms_and_events['form_name'].isna()]['event_name']
-        repeating_forms = repeating_forms_and_events[repeating_forms_and_events['form_name'].notna()]['form_name']
+        repeating_events = repeating_forms_and_events[repeating_forms_and_events['form_name'].isna(
+        )]['event_name']
+        repeating_forms = repeating_forms_and_events[repeating_forms_and_events['form_name'].notna(
+        )]['form_name']
         form_to_event_map = self.rc.export_event_map()
 
         # Split forms into different categories depending on whether they are repeated or not (-> different primary keys)
         # and build corresponding tables
         form_columns = {}
+        print(redcap_columns)
         for form in redcap_columns:
-            key_cols = [(study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null')]
-            form_events = form_to_event_map[form_to_event_map['form'] == form]['unique_event_name']
+            key_cols = [
+                (study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null')]
+            form_events = form_to_event_map[form_to_event_map['form']
+                                            == form]['unique_event_name']
 
             # Include redcap_event_name if instrument appears in multiple events
             if len(form_events) > 1:
@@ -76,8 +87,10 @@ class RedcapImporter:
             if form_is_repeated_in_any_event or (form_events.isin(repeating_events)).any():
                 key_cols.append((RCCols.RepeatInst, 'integer not null'))
 
-            form_columns[form] = self.ColumnCollection(key_cols, redcap_columns[form])
-            self._create_redcap_table(form_columns[form], *study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
+            form_columns[form] = self.ColumnCollection(
+                key_cols, redcap_columns[form])
+            self._create_redcap_table(
+                form_columns[form], *study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
         return form_columns
 
     def _import_data_from_redcap(self, form_columns: Dict[str, ColumnCollection]):
@@ -88,7 +101,8 @@ class RedcapImporter:
         """
 
         # Get list of columns with a date type
-        date_cols = [name for cols in form_columns.values() for name, t in cols.data_cols if t == SqlTypes.Date]
+        date_cols = [name for cols in form_columns.values()
+                     for name, t in cols.data_cols if t == SqlTypes.Date]
 
         # Download records from RedCap API
         data = self.rc.export_records(date_cols)
@@ -97,18 +111,21 @@ class RedcapImporter:
         # into the table corresponding to the form
         for form, columns in form_columns.items():
             data_col_names = [name for name, _ in columns.data_cols]
-            all_col_names = [name for name, _ in columns.key_cols] + data_col_names
+            all_col_names = [name for name,
+                             _ in columns.key_cols] + data_col_names
 
             # Extract relevant columns (for the current form)
             # Remove rows which do not contain any data for the current form
             # (Not all redcap records contain data for all forms)
-            form_data = data.loc[:, all_col_names].dropna(how='all', subset=data_col_names)
+            form_data = data.loc[:, all_col_names].dropna(
+                how='all', subset=data_col_names)
 
             # Replace NULLs in key columns with 0/empty string (since primary key must not be NULL), in data columns with 'None'
             if RCCols.RepeatInst in form_data.columns:
                 form_data.loc[:, RCCols.RepeatInst].fillna(0, inplace=True)
             if RCCols.RepeatInstrument in form_data.columns:
-                form_data.loc[:, RCCols.RepeatInstrument].fillna('', inplace=True)
+                form_data.loc[:, RCCols.RepeatInstrument].fillna(
+                    '', inplace=True)
             form_data = form_data.replace({pd.NA: None})
 
             # Insert records into table
