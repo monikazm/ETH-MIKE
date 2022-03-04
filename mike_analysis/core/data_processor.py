@@ -13,7 +13,8 @@ from mike_analysis.core.file_processing import process_tdms, search_and_extract_
 from mike_analysis.core.table_migrator import TableMigrator
 from mike_analysis.evaluators import metric_evaluator_for_mode
 
-ProcessArgs = namedtuple('ProcessArgs', 'tdms_path db_trial_results assessment_id task_type left_hand')
+ProcessArgs = namedtuple(
+    'ProcessArgs', 'tdms_path db_trial_results assessment_id task_type left_hand')
 
 
 class DataProcessor:
@@ -23,7 +24,8 @@ class DataProcessor:
         self.migrator = migrator
         self.metric_meta = {mode: metric_evaluator_for_mode[mode].get_result_column_info()
                             for mode in metric_evaluator_for_mode if mode.name in cfg.IMPORT_ASSESSMENTS}
-        self.metric_col_names_for_mode = {mode: [meta[0] for meta in self.metric_meta[mode]] for mode in self.metric_meta}
+        self.metric_col_names_for_mode = {
+            mode: [meta[0] for meta in self.metric_meta[mode]] for mode in self.metric_meta}
 
     def create_metric_info_table(self):
         # Create metric meta table
@@ -36,7 +38,8 @@ class DataProcessor:
                         "BiggerIsBetter" integer not null,
                         "Unit" varchar not null,
                     ''' + ',\n'.join([f'"{col}" numeric' for col in additional_columns]) + ')'
-        self.migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
+        self.migrator.create_or_update_table_index_or_view_from_stmt(
+            create_stmt)
 
         # Insert metric metadata
         self.out_conn.executemany('INSERT OR IGNORE INTO "MetricInfo" (Name, DataType, BiggerIsBetter, Unit) '
@@ -68,14 +71,16 @@ class DataProcessor:
             if mode.name not in cfg.IMPORT_ASSESSMENTS:
                 continue
 
-            result_cols_defs = ',\n'.join([f'"{name}" {type_name}' for name, type_name, _, _ in self.metric_meta[mode]])
+            result_cols_defs = ',\n'.join(
+                [f'"{name}" {type_name}' for name, type_name, _, _ in self.metric_meta[mode]])
             create_result_table_query = f'''
                 CREATE TABLE "{Tables.Results[mode]}" (
                     "AssessmentId" integer primary key not null,
                     {result_cols_defs}
                 )
             '''
-            self.migrator.create_or_update_table_index_or_view_from_stmt(create_result_table_query)
+            self.migrator.create_or_update_table_index_or_view_from_stmt(
+                create_result_table_query)
             combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]} USING(AssessmentId)\n'
         return combined_session_result_stmt_joins
 
@@ -106,10 +111,14 @@ class DataProcessor:
             ) USING(PatientId, LeftHand, IthSession)
         ''')
 
-        all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values() for name in metric_col_names]
-        metric_names = ', '.join(f'MAX({metric}) AS {metric}' for metric in all_metric_col_names)
-        not_null_checks = ' OR\n'.join(f'{name} IS NOT NULL' for name in all_metric_col_names)
-        patient_columns = self.migrator.out_get_all_columns_except(Tables.Patient, ('SubjectNr', 'PatientId'))
+        all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values(
+        ) for name in metric_col_names]
+        metric_names = ', '.join(
+            f'MAX({metric}) AS {metric}' for metric in all_metric_col_names)
+        not_null_checks = ' OR\n'.join(
+            f'{name} IS NOT NULL' for name in all_metric_col_names)
+        patient_columns = self.migrator.out_get_all_columns_except(
+            Tables.Patient, ('SubjectNr', 'PatientId'))
 
         session_result_view_name = 'SessionResult'
         create_combined_session_result_stmt = f'''
@@ -125,11 +134,14 @@ class DataProcessor:
                 GROUP BY P.PatientId, PS.LeftHand, PS.IthSession
                 ORDER BY P.SubjectNr, PS.LeftHand, PS.IthSession
         '''
-        self.migrator.create_or_update_table_index_or_view_from_stmt(create_combined_session_result_stmt)
-        study_cfg.create_additional_views(self.migrator, f', '.join(all_metric_col_names))
+        self.migrator.create_or_update_table_index_or_view_from_stmt(
+            create_combined_session_result_stmt)
+        study_cfg.create_additional_views(
+            self.migrator, f', '.join(all_metric_col_names))
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
-        enabled_modes = [mode for mode in Modes if mode.name in cfg.IMPORT_ASSESSMENTS]
+        enabled_modes = [
+            mode for mode in Modes if mode.name in cfg.IMPORT_ASSESSMENTS]
         self.out_conn.row_factory = sqlite3.Row
 
         # Check for missing data
@@ -147,10 +159,12 @@ class DataProcessor:
             missing_assess_for_user_hand = {(sess['SubjectNr'], sess['LeftHand']): {mode: 0 for mode in enabled_modes} for sess in
                                             incomplete_sessions}
             for sess in incomplete_sessions:
-                completed = [Modes(int(t, 10)) for t in sess['CompletedTasks'].split(',')]
+                completed = [Modes(int(t, 10))
+                             for t in sess['CompletedTasks'].split(',')]
                 for mode in enabled_modes:
                     if mode not in completed:
-                        missing_assess_for_user_hand[(sess['SubjectNr'], sess['LeftHand'])][mode] += 1
+                        missing_assess_for_user_hand[(
+                            sess['SubjectNr'], sess['LeftHand'])][mode] += 1
 
             with colored_print(TColor.WARNING):
                 for (patient, leftHand), missing_for_Mode in missing_assess_for_user_hand.items():
@@ -199,18 +213,24 @@ class DataProcessor:
 
             if not os.path.exists(full_tdms_path):
                 # If tdms not found, look for it in the zip files in the polybox upload dir and extract it if found
-                user_backup_dir = os.path.join(polybox_upload_dir, 'Session Results', subject_nr)
-                found = search_and_extract_tdms_from_zips(user_backup_dir, assessment['SessionId'], rel_path, full_tdms_path)
+                user_backup_dir = os.path.join(
+                    polybox_upload_dir, 'Session Results', subject_nr)
+                found = search_and_extract_tdms_from_zips(
+                    user_backup_dir, assessment['SessionId'], rel_path, full_tdms_path)
                 if not found:
                     with colored_print(TColor.WARNING):
-                        print(f'WARNING: Raw data for assessment {assessment["AssessmentId"]} appears to be missing ("{full_tdms_path}").')
+                        print(
+                            f'WARNING: Raw data for assessment {assessment["AssessmentId"]} appears to be missing ("{full_tdms_path}").')
                     continue
 
-            db_trial_results = self.in_conn.execute(result_table_query_for_mode[mode], (assessment_id,)).fetchall()
+            db_trial_results = self.in_conn.execute(
+                result_table_query_for_mode[mode], (assessment_id,)).fetchall()
             if mode == Modes.RangeOfMotion:
                 # Workaround for missing automatic results in rom task (add dummy entries assuming same number of trials as active/passive)
-                db_trial_results += [{'RomMode': 2} for _ in range(len(db_trial_results) // 2)]
-            todo_assessments[mode].append(ProcessArgs(full_tdms_path, db_trial_results, assessment_id, task_type, left_hand))
+                db_trial_results += [{'RomMode': 2}
+                                     for _ in range(len(db_trial_results) // 2)]
+            todo_assessments[mode].append(ProcessArgs(
+                full_tdms_path, db_trial_results, assessment_id, task_type, left_hand))
 
         # Compute metrics in parallel
         with multiprocessing.Pool() if cfg.ENABLE_MULTICORE else nullcontext() as p:
@@ -218,11 +238,14 @@ class DataProcessor:
             for mode, assessments in todo_assessments.items():
                 with time_measured(mode.name):
                     # Compute metrics for all assessments of this mode
-                    results = map_(self._process_single_assessment, assessments)
+                    results = map_(
+                        self._process_single_assessment, assessments)
 
                     # Store metrics in output database
-                    metric_column_placeholders = ', '.join([f':{name}' for name in self.metric_col_names_for_mode[mode]])
-                    metric_column_names = ', '.join(self.metric_col_names_for_mode[mode])
+                    metric_column_placeholders = ', '.join(
+                        [f':{name}' for name in self.metric_col_names_for_mode[mode]])
+                    metric_column_names = ', '.join(
+                        self.metric_col_names_for_mode[mode])
                     insert_stmt = f'INSERT OR REPLACE INTO "{Tables.Results[mode]}" (AssessmentId, {metric_column_names}) ' \
                                   f'VALUES (:AssessmentId, {metric_column_placeholders})'
                     self.out_conn.executemany(insert_stmt, results)
@@ -232,6 +255,7 @@ class DataProcessor:
     @staticmethod
     def _process_single_assessment(args: ProcessArgs):
         """Compute metric values for an assessment and return as dict"""
-        result_dict = process_tdms(args.tdms_path, args.left_hand, args.task_type, args.db_trial_results)
+        result_dict = process_tdms(
+            args.tdms_path, args.left_hand, args.task_type, args.db_trial_results)
         result_dict['AssessmentId'] = args.assessment_id
         return result_dict

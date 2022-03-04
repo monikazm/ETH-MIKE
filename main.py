@@ -18,6 +18,8 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         return pd.to_datetime(timestamp).strftime('%Y-%m-%d')
     sqlite3.register_adapter(pd.Timestamp, ts_adapter)
 
+    print(cfg.IMPORT_ASSESSMENTS)
+
     # Open database files
     try:
         # Open db.db in read-only mode
@@ -29,7 +31,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         sys.exit(-1)
 
     try:
-        # migrates data from input table (mike front end db) to analysis db
+        # Migrates data from front end db to analysis db
         migrator = TableMigrator(in_conn, out_conn)
 
         # Copy patient, session and completed assessment data from input database
@@ -46,6 +48,11 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         migrator.migrate_table_index_or_view(f'{Tables.Assessment}_SessionId')
         migrator.migrate_table_data(
             Tables.Assessment, f'State == {AssessmentState.Finished} AND IsTrialRun IS FALSE')
+
+        for therapy in cfg.IMPORT_THERAPIES:
+            tableName = therapy + 'Result'
+            migrator.migrate_table_index_or_view(tableName)
+            migrator.migrate_table_data(tableName, [])
 
         # Import data from redcap if enabled
         if cfg.REDCAP_IMPORT:
