@@ -11,6 +11,7 @@ from mike_analysis.core.data_processor import DataProcessor
 from mike_analysis.core.constants import Tables, time_measured, AssessmentState
 from mike_analysis.core.redcap_importer import RedcapImporter
 from mike_analysis.core.table_migrator import TableMigrator
+from mike_analysis.core.redcap_view_creator import insert_therapy_day, create_therapy_view
 
 
 def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_dir: str):
@@ -58,10 +59,12 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         if cfg.REDCAP_IMPORT:
             try:
                 RedcapImporter(migrator, out_conn).import_all_from_redcap()
+
             except Exception as e:
                 print(
                     f'There was a problem while importing data from redcap:\n{e}')
                 sys.exit(-2)
+            insert_therapy_day(migrator)
 
         # Import all data, compute metrics and store results in analysis database
         processor = DataProcessor(in_conn, out_conn, migrator)
@@ -70,6 +73,8 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
             combined_session_result_stmt_joins = processor.create_result_tables()
             processor.create_result_views(combined_session_result_stmt_joins)
         processor.compute_and_store_metrics(data_dir, polybox_upload_dir)
+
+        create_therapy_view(migrator)
     finally:
         in_conn.close()
         out_conn.close()
