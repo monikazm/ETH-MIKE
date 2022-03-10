@@ -15,7 +15,13 @@ class TableMigrator:
     def get_original_create_stmt(element_name: str, conn: sqlite3.Connection) -> str:
         ret = conn.execute(
             f"SELECT sql FROM sqlite_master WHERE name == '{element_name}'").fetchone()
-        return '' if ret is None else ret[0]
+        if ret is None:
+            return ''
+        else:
+            try:
+                return ret[0]
+            except:
+                return ret['sql']
 
     def out_has_tables(self, table_names: List[str]):
         entries = self.out_conn.execute(
