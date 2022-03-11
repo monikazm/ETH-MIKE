@@ -14,12 +14,26 @@ from mike_analysis.core.table_migrator import TableMigrator
 from mike_analysis.core.redcap_view_creator import insert_therapy_day, create_therapy_view
 
 
+def migrate_frontend_tables(cfg, migrator):
+    for table in cfg.IMPORT_TABLES:
+        if table == 'Assessment':
+            migrator.migrate_table(
+                table, cfg.IMPORT_TABLES[table], f'State == {AssessmentState.Finished} AND IsTrialRun IS FALSE')
+        else:
+            migrator.migrate_table(table, cfg.IMPORT_TABLES[table])
+    for assessment_table in cfg.IMPORT_ASSESSMENT_TABLES:
+        assessment_table = assessment_table + 'Result'
+        migrator.migrate_table(
+            assessment_table, (assessment_table + '_AssessmentId'))
+    for therapy_table in cfg.IMPORT_THERAPY_TABLES:
+        therapy_table = therapy_table + 'Result'
+        migrator.migrate_table(therapy_table, (therapy_table + '_ExerciseId'))
+
+
 def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_dir: str):
     def ts_adapter(timestamp: pd.Timestamp) -> str:
         return pd.to_datetime(timestamp).strftime('%Y-%m-%d')
     sqlite3.register_adapter(pd.Timestamp, ts_adapter)
-
-    print(cfg.IMPORT_ASSESSMENTS)
 
     # Open database files
     try:
@@ -35,25 +49,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         # Migrates data from front end db to analysis db
         migrator = TableMigrator(in_conn, out_conn)
 
-        # Copy patient, session and completed assessment data from input database
-        migrator.migrate_table_index_or_view(Tables.Patient, overwrite=True)
-        migrator.migrate_table_index_or_view(f'{Tables.Patient}_SubjectNr')
-        migrator.migrate_table_data(Tables.Patient)
-
-        migrator.migrate_table_index_or_view(Tables.Session, overwrite=True)
-        migrator.migrate_table_index_or_view(f'{Tables.Session}_PatientId')
-        migrator.migrate_table_data(Tables.Session)
-
-        migrator.migrate_table_index_or_view(
-            f'{Tables.Assessment}', overwrite=True)
-        migrator.migrate_table_index_or_view(f'{Tables.Assessment}_SessionId')
-        migrator.migrate_table_data(
-            Tables.Assessment, f'State == {AssessmentState.Finished} AND IsTrialRun IS FALSE')
-
-        for therapy in cfg.IMPORT_THERAPIES:
-            tableName = therapy + 'Result'
-            migrator.migrate_table_index_or_view(tableName)
-            migrator.migrate_table_data(tableName, [])
+        migrate_frontend_tables(cfg, migrator)
 
         # Import data from redcap if enabled
         if cfg.REDCAP_IMPORT:

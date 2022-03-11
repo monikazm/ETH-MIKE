@@ -28,3 +28,12 @@ def create_therapy_view(tableMigrator):
     #         '''
     # tableMigrator.create_or_update_table_index_or_view_from_stmt(sql_command)
     return
+
+
+def create_assessment_view(tableMigrator):
+    # sql_command = f'''
+    #             CREATE VIEW TherapyStudyOverview AS
+    #                 SELECT Demographics.*, RoboticAssesment.*, Robotic_Therapy.*, Usability.*
+    #                 From Demographics, RoboticAssesment,Robotic_Therapy,Usability
+    #         '''
+    return

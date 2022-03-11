@@ -88,6 +88,7 @@ class TableMigrator:
                         self.out_conn.execute('DROP TABLE tmp_migration')
                     else:
                         self.out_conn.execute(f'DROP {kind} {element_name}')
+                        # print(create_elem_stmt_in)
                         self.out_conn.execute(create_elem_stmt_in)
             else:
                 self.out_conn.execute(create_elem_stmt_in)
@@ -128,3 +129,8 @@ class TableMigrator:
         """
         prefix = f'{alias}.' if alias else ''
         return ', '.join([f'{prefix}{col}' for col in self.out_get_all_columns_except(table, ignore_list)])
+
+    def migrate_table(self, table_name: str, index_name: str, filter_cond: str = ''):
+        self.migrate_table_index_or_view(table_name, overwrite=True)
+        self.migrate_table_index_or_view(index_name)
+        self.migrate_table_data(table_name, filter_cond)
