@@ -11,7 +11,7 @@ from mike_analysis.core.data_processor import DataProcessor
 from mike_analysis.core.constants import Tables, time_measured, AssessmentState
 from mike_analysis.core.redcap_importer import RedcapImporter
 from mike_analysis.core.table_migrator import TableMigrator
-from mike_analysis.core.redcap_view_creator import insert_therapy_day, create_therapy_view, create_assessment_view
+from mike_analysis.core.redcap_view_creator import insert_therapy_day, create_therapy_view, create_assessment_view, create_usability_view
 
 
 def migrate_frontend_tables(cfg, migrator):
@@ -97,8 +97,9 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
             processor.create_result_views(combined_session_result_stmt_joins)
         processor.compute_and_store_metrics(data_dir, polybox_upload_dir)
 
-        # insert_therapy_day(migrator)
+        insert_therapy_day(migrator)
         create_assessment_view(migrator)
+        create_usability_view(migrator)
     finally:
         in_conn.close()
         out_conn.close()

@@ -120,7 +120,7 @@ class DataProcessor:
         patient_columns = self.migrator.out_get_all_columns_except(
             Tables.Patient, ('SubjectNr', 'PatientId'))
 
-        session_result_view_name = 'SessionResult'
+        session_result_view_name = 'AssessmentMetrics'
         create_combined_session_result_stmt = f'''
             CREATE VIEW "{session_result_view_name}" AS
                 SELECT P.SubjectNr, PS.LeftHand, PS.IthSession, PS.SessionStartDate,

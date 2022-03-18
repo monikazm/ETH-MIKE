@@ -9,14 +9,16 @@ def create_therapy_day_if_not_exist(migrator, table_name):
 
 def insert_therapy_day(tableMigrator):
     create_therapy_day_if_not_exist(tableMigrator, "Robotic_Therapy")
+    create_therapy_day_if_not_exist(tableMigrator, "RoboticAssessment")
+    create_therapy_day_if_not_exist(tableMigrator, "Usability")
+
     tableMigrator.out_conn.execute(
         f"UPDATE Robotic_Therapy SET therapy_day = (robotic_therapy_session_nu + 1)")
-    create_therapy_day_if_not_exist(tableMigrator, "RoboticAssessment")
     tableMigrator.out_conn.execute(
-        f"UPDATE RoboticAssessment SET therapy_day= CASE robotic_assessment_session WHEN 1 THEN 1 ELSE 15 END")
-    create_therapy_day_if_not_exist(tableMigrator, "Usability")
+        f"UPDATE RoboticAssessment SET therapy_day = (CASE robotic_assessment_session WHEN 1 THEN 1 ELSE 15 END);")
     tableMigrator.out_conn.execute(
-        f"UPDATE Usability SET therapy_day= CASE usability_session_number WHEN 1 THEN 2 WHEN 2 THEN 6 WHEN 3 THEN 10 ELSE 14 END")
+        f"UPDATE Usability SET therapy_day = CASE usability_session_number WHEN 1 THEN 2 WHEN 2 THEN 6 WHEN 3 THEN 10 ELSE 14 END;")
+    tableMigrator.out_conn.commit()
 
 
 def create_assessment_view(tableMigrator):
@@ -30,11 +32,14 @@ def create_assessment_view(tableMigrator):
                 CREATE VIEW AssessmentCombined 
                 AS
                 SELECT 
-                    RoboticAssessment.*,   
-                    Demographics.*
+                    Demographics.*,
+                    RoboticAssessment.*,    
+                    AssessmentMetrics.*
                 FROM 
                     RoboticAssessment
-                LEFT JOIN Demographics ON Demographics.study_id = RoboticAssessment.study_id
+                LEFT JOIN Demographics ON Demographics.study_id == RoboticAssessment.study_id
+                LEFT JOIN AssessmentMetrics ON AssessmentMetrics.SubjectNr == Demographics.subject_code
+                
             '''
     tableMigrator.out_conn.execute(
         sql_command)
@@ -47,4 +52,21 @@ def create_therapy_view(tableMigrator):
     #                 SELECT Demographics.*, RoboticAssesment.*, Robotic_Therapy.*, Usability.*
     #                 From Demographics, RoboticAssesment,Robotic_Therapy,Usability
     #         '''
+    return
+
+
+def create_usability_view(tableMigrator):
+    tableMigrator.out_conn.execute(f"DROP VIEW IF EXISTS UsabilityCombined;")
+    sql_command = f'''
+                CREATE VIEW UsabilityCombined 
+                AS
+                SELECT 
+                    Demographics.*,
+                    Usability.*   
+                FROM 
+                    Usability
+                LEFT JOIN Demographics ON Demographics.study_id == Usability.study_id             
+            '''
+    tableMigrator.out_conn.execute(
+        sql_command)
     return
