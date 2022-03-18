@@ -132,5 +132,5 @@ class TableMigrator:
 
     def migrate_table(self, table_name: str, index_name: str, filter_cond: str = ''):
         self.migrate_table_index_or_view(table_name, overwrite=True)
-        self.migrate_table_index_or_view(index_name)
+        self.migrate_table_index_or_view(index_name, overwrite=True)
         self.migrate_table_data(table_name, filter_cond)

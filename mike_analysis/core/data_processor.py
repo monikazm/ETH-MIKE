@@ -74,14 +74,14 @@ class DataProcessor:
             result_cols_defs = ',\n'.join(
                 [f'"{name}" {type_name}' for name, type_name, _, _ in self.metric_meta[mode]])
             create_result_table_query = f'''
-                CREATE TABLE "{Tables.Results[mode]}" (
+                CREATE TABLE "{Tables.MetricResults[mode]}" (
                     "AssessmentId" integer primary key not null,
                     {result_cols_defs}
                 )
             '''
             self.migrator.create_or_update_table_index_or_view_from_stmt(
                 create_result_table_query, overwrite=True)
-            combined_session_result_stmt_joins += f'LEFT JOIN {Tables.Results[mode]} USING(AssessmentId)\n'
+            combined_session_result_stmt_joins += f'LEFT JOIN {Tables.MetricResults[mode]} USING(AssessmentId)\n'
         return combined_session_result_stmt_joins
 
     def create_result_views(self, combined_session_result_stmt_joins: str):
@@ -246,7 +246,7 @@ class DataProcessor:
                         [f':{name}' for name in self.metric_col_names_for_mode[mode]])
                     metric_column_names = ', '.join(
                         self.metric_col_names_for_mode[mode])
-                    insert_stmt = f'INSERT OR REPLACE INTO "{Tables.Results[mode]}" (AssessmentId, {metric_column_names}) ' \
+                    insert_stmt = f'INSERT OR REPLACE INTO "{Tables.MetricResults[mode]}" (AssessmentId, {metric_column_names}) ' \
                                   f'VALUES (:AssessmentId, {metric_column_placeholders})'
                     self.out_conn.executemany(insert_stmt, results)
         # Commit transaction (write everything to db file)

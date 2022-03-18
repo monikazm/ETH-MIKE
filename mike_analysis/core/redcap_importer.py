@@ -67,7 +67,6 @@ class RedcapImporter:
         # Split forms into different categories depending on whether they are repeated or not (-> different primary keys)
         # and build corresponding tables
         form_columns = {}
-        print(redcap_columns)
         for form in redcap_columns:
             key_cols = [
                 (study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null')]

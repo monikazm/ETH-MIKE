@@ -11,7 +11,7 @@ from mike_analysis.core.data_processor import DataProcessor
 from mike_analysis.core.constants import Tables, time_measured, AssessmentState
 from mike_analysis.core.redcap_importer import RedcapImporter
 from mike_analysis.core.table_migrator import TableMigrator
-from mike_analysis.core.redcap_view_creator import insert_therapy_day, create_therapy_view
+from mike_analysis.core.redcap_view_creator import insert_therapy_day, create_therapy_view, create_assessment_view
 
 
 def migrate_frontend_tables(cfg, migrator):
@@ -28,6 +28,33 @@ def migrate_frontend_tables(cfg, migrator):
     for therapy_table in cfg.IMPORT_THERAPY_TABLES:
         therapy_table = therapy_table + 'Result'
         migrator.migrate_table(therapy_table, (therapy_table + '_ExerciseId'))
+
+
+def migrate_frontend_views(cfg, migrator):
+    if cfg.IMPORT_ASSESSMENT_RESULTS_FULL_VIEW:
+        for assessment_view in cfg.IMPORT_ASSESSMENT_TABLES:
+            assessment_view = assessment_view + 'ResultFull'
+            migrator.migrate_table_index_or_view(
+                assessment_view, overwrite=True)
+    if cfg.IMPORT_ASSESSMENT_RESULTS_AGGREGATE_VIEW:
+        assert cfg.IMPORT_ASSESSMENT_RESULTS_FULL_VIEW, \
+            "IMPORT_ASSESSMENT_RESULTS_FULL_VIEW must be enabled for this functionality."
+        for assessment_view in cfg.IMPORT_ASSESSMENT_TABLES:
+            assessment_view = assessment_view + 'ResultAggregate'
+            migrator.migrate_table_index_or_view(
+                assessment_view, overwrite=True)
+    if cfg.IMPORT_THERAPY_RESULTS_FULL_VIEW:
+        for therapy_view in cfg.IMPORT_THERAPY_TABLES:
+            therapy_view = therapy_view + 'ResultFull'
+            migrator.migrate_table_index_or_view(
+                therapy_view, overwrite=True)
+    if cfg.IMPORT_THERAPY_RESULTS_AGGREGATE_VIEW:
+        assert cfg.IMPORT_THERAPY_RESULTS_FULL_VIEW, \
+            "IMPORT_THERAPY_RESULTS_FULL_VIEW must be enabled for this functionality."
+        for therapy_view in cfg.IMPORT_THERAPY_TABLES:
+            therapy_view = therapy_view + 'ResultAggregate'
+            migrator.migrate_table_index_or_view(
+                therapy_view, overwrite=True)
 
 
 def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_dir: str):
@@ -50,6 +77,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         migrator = TableMigrator(in_conn, out_conn)
 
         migrate_frontend_tables(cfg, migrator)
+        migrate_frontend_views(cfg, migrator)
 
         # Import data from redcap if enabled
         if cfg.REDCAP_IMPORT:
@@ -60,7 +88,6 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
                 print(
                     f'There was a problem while importing data from redcap:\n{e}')
                 sys.exit(-2)
-            insert_therapy_day(migrator)
 
         # Import all data, compute metrics and store results in analysis database
         processor = DataProcessor(in_conn, out_conn, migrator)
@@ -70,7 +97,8 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
             processor.create_result_views(combined_session_result_stmt_joins)
         processor.compute_and_store_metrics(data_dir, polybox_upload_dir)
 
-        create_therapy_view(migrator)
+        # insert_therapy_day(migrator)
+        create_assessment_view(migrator)
     finally:
         in_conn.close()
         out_conn.close()
