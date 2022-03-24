@@ -1,3 +1,5 @@
+import sys
+
 import sqlite3
 from collections import namedtuple
 from typing import Dict, List
@@ -138,7 +140,13 @@ class RedcapImporter:
     def import_all_from_redcap(self):
         """Create tables in database based on RedCap metadata and populate them with record data from RedCap."""
 
-        with time_measured('redcap metadata import and table creation'):
-            form_columns = self._create_tables_from_redcap_metadata()
-        with time_measured('redcap data import'):
-            self._import_data_from_redcap(form_columns)
+        try:
+            with time_measured('redcap metadata import and table creation'):
+                form_columns = self._create_tables_from_redcap_metadata()
+            with time_measured('redcap data import'):
+                self._import_data_from_redcap(form_columns)
+
+        except Exception as e:
+            print(
+                f'There was a problem while importing data from redcap:\n{e}')
+            sys.exit(-2)

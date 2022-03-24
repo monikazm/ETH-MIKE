@@ -39,13 +39,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
 
         # Import data from redcap if enabled
         if cfg.REDCAP_IMPORT:
-            try:
-                RedcapImporter(migrator, out_conn).import_all_from_redcap()
-
-            except Exception as e:
-                print(
-                    f'There was a problem while importing data from redcap:\n{e}')
-                sys.exit(-2)
+            RedcapImporter(migrator, out_conn).import_all_from_redcap()
 
         # Import all data, compute metrics and store results in analysis database
         processor = DataProcessor(in_conn, out_conn, migrator)
