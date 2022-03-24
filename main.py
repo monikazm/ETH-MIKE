@@ -99,6 +99,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
 
         insert_therapy_day(migrator)
         create_assessment_view(migrator)
+        create_therapy_view(migrator, cfg)
         create_usability_view(migrator)
     finally:
         in_conn.close()
