@@ -8,15 +8,15 @@ import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.constants import SqlTypes, time_measured, RCCols
 from mike_analysis.core.redcap_api import RedCap
-from mike_analysis.core.table_migrator import TableMigrator
+from mike_analysis.core.sqlite_migrator import SQLiteMigrator
 
 
 class RedcapImporter:
     ColumnCollection = namedtuple(
         'ColumnCollection', ['key_cols', 'data_cols'])
 
-    def __init__(self, table_migrator: TableMigrator, out_conn: sqlite3.Connection):
-        self.migrator = table_migrator
+    def __init__(self, sqlite_migrator: SQLiteMigrator, out_conn: sqlite3.Connection):
+        self.sqlite_migrator = sqlite_migrator
         self.out_conn = out_conn
         self.rc = RedCap(api_url=cfg.REDCAP_URL, token=cfg.RECAP_API_TOKEN)
 
@@ -38,11 +38,11 @@ class RedcapImporter:
                 PRIMARY KEY({comma_separated_key_column_names})
             )
         '''
-        self.migrator.create_or_update_table_index_or_view_from_stmt(
+        self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_redcap_table_stmt)
         for index in table_indices:
             index_name = index.replace(',', '_').replace(' ', '')
-            self.migrator.create_or_update_table_index_or_view_from_stmt(
+            self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
                 f'CREATE INDEX "{table_name}_{index_name}" ON {table_name} ({index})')
 
     def _create_tables_from_redcap_metadata(self) -> Dict[str, ColumnCollection]:

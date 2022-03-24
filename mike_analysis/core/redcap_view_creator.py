@@ -96,7 +96,6 @@ def create_therapy_view(tableMigrator, cfg):
                 LEFT JOIN Demographics ON Demographics.study_id == Robotic_Therapy.study_id
                 {front_end_view_join_stmt} 
             '''
-    print(sql_command)
     tableMigrator.out_conn.execute(
         sql_command)
     return

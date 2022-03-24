@@ -1,6 +1,6 @@
 # This file may need to be adapted for different studies with different redcap tables
 from mike_analysis.core.constants import RCCols
-from mike_analysis.core.table_migrator import TableMigrator
+from mike_analysis.core.sqlite_migrator import SQLiteMigrator
 
 REDCAP_RECORD_IDENTIFIER = 'study_id'
 REDCAP_EXCLUDED_COLS = {'gender', 'handedness', 'impaired_side',
@@ -17,7 +17,7 @@ REDCAP_NAMES_AND_INDEX_COLS = {
 }
 
 
-def create_additional_views(migrator: TableMigrator, metric_names: str):
+def create_additional_views(migrator: SQLiteMigrator, metric_names: str):
     """In this function you can create additional views in the output database if needed."""
 
     # Create additional views

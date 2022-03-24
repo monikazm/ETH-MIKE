@@ -10,51 +10,9 @@ from mike_analysis.cfg import config as cfg
 from mike_analysis.core.data_processor import DataProcessor
 from mike_analysis.core.constants import Tables, time_measured, AssessmentState
 from mike_analysis.core.redcap_importer import RedcapImporter
-from mike_analysis.core.table_migrator import TableMigrator
+from mike_analysis.core.sqlite_migrator import SQLiteMigrator
 from mike_analysis.core.redcap_view_creator import insert_therapy_day, create_therapy_view, create_assessment_view, create_usability_view
-
-
-def migrate_frontend_tables(cfg, migrator):
-    for table in cfg.IMPORT_TABLES:
-        if table == 'Assessment':
-            migrator.migrate_table(
-                table, cfg.IMPORT_TABLES[table], f'State == {AssessmentState.Finished} AND IsTrialRun IS FALSE')
-        else:
-            migrator.migrate_table(table, cfg.IMPORT_TABLES[table])
-    for assessment_table in cfg.IMPORT_ASSESSMENT_TABLES:
-        assessment_table = assessment_table + 'Result'
-        migrator.migrate_table(
-            assessment_table, (assessment_table + '_AssessmentId'))
-    for therapy_table in cfg.IMPORT_THERAPY_TABLES:
-        therapy_table = therapy_table + 'Result'
-        migrator.migrate_table(therapy_table, (therapy_table + '_ExerciseId'))
-
-
-def migrate_frontend_views(cfg, migrator):
-    if cfg.IMPORT_ASSESSMENT_RESULTS_FULL_VIEW:
-        for assessment_view in cfg.IMPORT_ASSESSMENT_TABLES:
-            assessment_view = assessment_view + 'ResultFull'
-            migrator.migrate_table_index_or_view(
-                assessment_view, overwrite=True)
-    if cfg.IMPORT_ASSESSMENT_RESULTS_AGGREGATE_VIEW:
-        assert cfg.IMPORT_ASSESSMENT_RESULTS_FULL_VIEW, \
-            "IMPORT_ASSESSMENT_RESULTS_FULL_VIEW must be enabled for this functionality."
-        for assessment_view in cfg.IMPORT_ASSESSMENT_TABLES:
-            assessment_view = assessment_view + 'ResultAggregate'
-            migrator.migrate_table_index_or_view(
-                assessment_view, overwrite=True)
-    if cfg.IMPORT_THERAPY_RESULTS_FULL_VIEW:
-        for therapy_view in cfg.IMPORT_THERAPY_TABLES:
-            therapy_view = therapy_view + 'ResultFull'
-            migrator.migrate_table_index_or_view(
-                therapy_view, overwrite=True)
-    if cfg.IMPORT_THERAPY_RESULTS_AGGREGATE_VIEW:
-        assert cfg.IMPORT_THERAPY_RESULTS_FULL_VIEW, \
-            "IMPORT_THERAPY_RESULTS_FULL_VIEW must be enabled for this functionality."
-        for therapy_view in cfg.IMPORT_THERAPY_TABLES:
-            therapy_view = therapy_view + 'ResultAggregate'
-            migrator.migrate_table_index_or_view(
-                therapy_view, overwrite=True)
+from mike_analysis.core.frontend_migration import migrate_specified_frontend_content
 
 
 def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_dir: str):
@@ -73,11 +31,11 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
         sys.exit(-1)
 
     try:
-        # Migrates data from front end db to analysis db
-        migrator = TableMigrator(in_conn, out_conn)
+        # Provides interface to migratze data from the front end db to the output analysis db
+        migrator = SQLiteMigrator(in_conn, out_conn)
 
-        migrate_frontend_tables(cfg, migrator)
-        migrate_frontend_views(cfg, migrator)
+        # Migrates elements specified in config
+        migrate_specified_frontend_content(migrator, cfg)
 
         # Import data from redcap if enabled
         if cfg.REDCAP_IMPORT:

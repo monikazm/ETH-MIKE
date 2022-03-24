@@ -10,7 +10,7 @@ import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.constants import Tables, Modes, ModeDescs, time_measured, colored_print, TColor, dict_factory
 from mike_analysis.core.file_processing import process_tdms, search_and_extract_tdms_from_zips
-from mike_analysis.core.table_migrator import TableMigrator
+from mike_analysis.core.sqlite_migrator import SQLiteMigrator
 from mike_analysis.evaluators import metric_evaluator_for_mode
 
 ProcessArgs = namedtuple(
@@ -18,10 +18,10 @@ ProcessArgs = namedtuple(
 
 
 class DataProcessor:
-    def __init__(self, in_conn, out_conn, migrator: TableMigrator):
+    def __init__(self, in_conn, out_conn, sqlite_migrator: SQLiteMigrator):
         self.in_conn: sqlite3.Connection = in_conn
         self.out_conn: sqlite3.Connection = out_conn
-        self.migrator = migrator
+        self.sqlite_migrator = sqlite_migrator
         self.metric_meta = {mode: metric_evaluator_for_mode[mode].get_result_column_info()
                             for mode in metric_evaluator_for_mode if mode.name in cfg.IMPORT_ASSESSMENT_TABLES}
         self.metric_col_names_for_mode = {
@@ -38,7 +38,7 @@ class DataProcessor:
                         "BiggerIsBetter" integer not null,
                         "Unit" varchar not null,
                     ''' + ',\n'.join([f'"{col}" numeric' for col in additional_columns]) + ')'
-        self.migrator.create_or_update_table_index_or_view_from_stmt(
+        self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_stmt)
 
         # Insert metric metadata
@@ -79,14 +79,14 @@ class DataProcessor:
                     {result_cols_defs}
                 )
             '''
-            self.migrator.create_or_update_table_index_or_view_from_stmt(
+            self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
                 create_result_table_query, overwrite=True)
             combined_session_result_stmt_joins += f'LEFT JOIN {Tables.MetricResults[mode]} USING(AssessmentId)\n'
         return combined_session_result_stmt_joins
 
     def create_result_views(self, combined_session_result_stmt_joins: str):
         # Create Pseudo Session View
-        self.migrator.create_or_update_table_index_or_view_from_stmt('''
+        self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt('''
             CREATE VIEW "PseudoSession" AS
             SELECT PatientId, LeftHand, IthSession, SessionStartDate, AssessmentId
             FROM (
@@ -117,7 +117,7 @@ class DataProcessor:
             f'MAX({metric}) AS {metric}' for metric in all_metric_col_names)
         not_null_checks = ' OR\n'.join(
             f'{name} IS NOT NULL' for name in all_metric_col_names)
-        patient_columns = self.migrator.out_get_all_columns_except(
+        patient_columns = self.sqlite_migrator.out_get_all_columns_except(
             Tables.Patient, ('SubjectNr', 'PatientId'))
 
         session_result_view_name = 'AssessmentMetrics'
@@ -134,10 +134,10 @@ class DataProcessor:
                 GROUP BY P.PatientId, PS.LeftHand, PS.IthSession
                 ORDER BY P.SubjectNr, PS.LeftHand, PS.IthSession
         '''
-        self.migrator.create_or_update_table_index_or_view_from_stmt(
+        self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_combined_session_result_stmt)
         study_cfg.create_additional_views(
-            self.migrator, f', '.join(all_metric_col_names))
+            self.sqlite_migrator, f', '.join(all_metric_col_names))
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
         enabled_modes = [
