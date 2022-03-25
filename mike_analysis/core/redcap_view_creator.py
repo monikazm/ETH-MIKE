@@ -158,7 +158,7 @@ def create_usability_view(tableMigrator):
                 CREATE VIEW UsabilityCombined 
                 AS
                 SELECT 
-                    Demographics.*,
+                    Demographics.subject_code,
                     Usability.*   
                 FROM 
                     Usability
