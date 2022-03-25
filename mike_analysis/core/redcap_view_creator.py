@@ -21,53 +21,83 @@ def insert_therapy_day(tableMigrator):
     tableMigrator.out_conn.commit()
 
 
-def compute_therapy_day(tableMigrator, view_name):
-    tableMigrator.out_conn.execute(
-        f"ALTER TABLE {view_name} ADD COLUMN therapy_date date;")
-    tableMigrator.out_conn.execute(
-        f"UPDATE {view_name}  SET therapy_date = substr( StartTime, 1, 8) ")
-    date_conversion = "SELECT date(substr(PassiveMatchingResultAggregate.StartTime, 1, 4) | | '-' | | substr(PassiveMatchingResultAggregate.StartTime, 5, 2) | | '-' | | substr(PassiveMatchingResultAggregate.StartTime, 7, 2))  FROM PassiveMatchingResultAggregate"
-
-
 def create_theragy_aggregate_day_view(tableMigrator, cfg):
     for therapy in cfg.IMPORT_THERAPY_TABLES:
         view_name = therapy + "ResultAggregateDaily"
         parent_view_name = therapy + "ResultAggregate"
         tableMigrator.out_conn.execute(f"DROP VIEW IF EXISTS {view_name};")
-        sql_command = f'''
-            CREATE VIEW {view_name}  
-                AS
-                SELECT 
-                    a.SubjectNr AS {therapy}_SubjectNr,
-					date(substr(a.StartTime, 1, 4) || '-' || substr(a.StartTime, 5, 2) || '-' || substr(a.StartTime, 7, 2)) AS {therapy}_date,
-                    a.Result AS {therapy}_Result,
-					a.AvgAbsErr AS {therapy}_AvgAbsErr,
-					a.AvgTimeUntilValidate AS {therapy}_AvgTimeUntilValidate,
-					a.Level AS {therapy}_Level,
-                    (SELECT b.Result FROM {parent_view_name} b 
-                                WHERE b.SubjectNr = a.SubjectNr
-                                AND substr(b.StartTime, 1, 8) = substr(a.StartTime, 1, 8)
-                                AND b.StartTime != a.StartTime LIMIT 3) AS {therapy}_Result,
-					(SELECT b.AvgAbsErr FROM {parent_view_name} b 
-                                WHERE b.SubjectNr = a.SubjectNr
-                                AND substr(b.StartTime, 1, 8) = substr(a.StartTime, 1, 8)
-                                AND b.StartTime != a.StartTime LIMIT 3) AS {therapy}_AvgAbsErr,
-					(SELECT b.AvgTimeUntilValidate FROM {parent_view_name} b 
-                                WHERE b.SubjectNr = a.SubjectNr
-                                AND substr(b.StartTime, 1, 8) = substr(a.StartTime, 1, 8)
-                                AND b.StartTime != a.StartTime LIMIT 3) AS {therapy}_AvgTimeUntilValidate,
-					(SELECT b.Level FROM {parent_view_name} b 
-                                WHERE b.SubjectNr = a.SubjectNr
-                                AND substr(b.StartTime, 1, 8) = substr(a.StartTime, 1, 8)
-                                AND b.StartTime != a.StartTime LIMIT 3) AS {therapy}_Level
-                    FROM {parent_view_name} a 
-                    GROUP BY a.SubjectNr
-        '''
+        if (therapy == 'PassiveMatching' or therapy == 'TrajectoryPerception'):
+            sql_command = f'''
+                CREATE VIEW {view_name}  
+                    AS
+                    SELECT 
+                        a.SubjectNr AS {therapy}_SubjectNr,
+                        date(substr(a.StartTime, 1, 4) || '-' || substr(a.StartTime, 5, 2) || '-' || substr(a.StartTime, 7, 2)) AS {therapy}_date,
+                        a.LeftHand AS {therapy}_LeftHand,
+                        a.Result AS {therapy}_Result,
+                        a.AvgAbsErr AS {therapy}_AvgAbsErr,
+                        a.AvgTimeUntilValidate AS {therapy}_AvgTimeUntilValidate,
+                        a.Level AS {therapy}_Level,
+                        b.Result AS {therapy}_Result,
+                        b.AvgAbsErr AS {therapy}_AvgAbsErr,
+                        b.AvgTimeUntilValidate AS {therapy}_AvgTimeUntilValidate,
+                        b.Level AS {therapy}_Level,
+                        c.Result AS {therapy}_Result,
+                        c.AvgAbsErr AS {therapy}_AvgAbsErr,
+                        c.AvgTimeUntilValidate AS {therapy}_AvgTimeUntilValidate,
+                        c.Level AS {therapy}_Level,
+                        d.Result AS {therapy}_Result,
+                        d.AvgAbsErr AS {therapy}_AvgAbsErr,
+                        d.AvgTimeUntilValidate AS {therapy}_AvgTimeUntilValidate,
+                        d.Level AS {therapy}_Level
+                        
+                        FROM {parent_view_name} a
+                        Left Join {parent_view_name} b ON b.SubjectNr = a.SubjectNr
+                                    AND substr(b.StartTime, 1, 8) = substr(a.StartTime, 1, 8)
+                                    AND b.StartTime != a.StartTime  
+                        Left Join {parent_view_name} c ON c.SubjectNr = a.SubjectNr
+                                    AND substr(c.StartTime, 1, 8) = substr(a.StartTime, 1, 8)
+                                    AND c.StartTime != a.StartTime  
+                                    AND c.StartTime != b.StartTime 
+                        Left Join {parent_view_name} d ON c.SubjectNr = a.SubjectNr
+                                    AND substr(d.StartTime, 1, 8) = substr(a.StartTime, 1, 8)
+                                    AND d.StartTime != a.StartTime  
+                                    AND d.StartTime != b.StartTime
+                                    AND d.StartTime != c.StartTime 
+                        GROUP BY 
+                        {therapy}_SubjectNr,
+                        {therapy}_date;
+            '''
+
+        else:
+            sql_command = f'''
+                CREATE VIEW {view_name}  
+                    AS
+                    SELECT 
+                        a.SubjectNr AS {therapy}_SubjectNr,
+                        date(substr(a.StartTime, 1, 4) || '-' || substr(a.StartTime, 5, 2) || '-' || substr(a.StartTime, 7, 2)) AS {therapy}_date,
+                        a.LeftHand AS {therapy}_LeftHand,
+                        a.Result AS {therapy}_Result,
+                        a.AvgAbsErr AS {therapy}_AvgAbsErr,
+                        a.AvgTimeUntilValidate AS {therapy}_AvgTimeUntilValidate,
+                        a.Level AS {therapy}_Level,
+                        b.Result AS {therapy}_Result,
+                        b.AvgAbsErr AS {therapy}_AvgAbsErr,
+                        b.AvgTimeUntilValidate AS {therapy}_AvgTimeUntilValidate,
+                        b.Level AS {therapy}_Level
+                        
+                        FROM {parent_view_name} a
+                        Left Join {parent_view_name} b ON b.SubjectNr = a.SubjectNr
+                                    AND substr(b.StartTime, 1, 8) = substr(a.StartTime, 1, 8)
+                                    AND b.StartTime != a.StartTime  
+                        GROUP BY 
+                        {therapy}_SubjectNr,
+                        {therapy}_date;
+            '''
         tableMigrator.out_conn.execute(sql_command)
 
 
 def create_therapy_view(tableMigrator, cfg):
-    # compute_therapy_day(tableMigrator, "PassiveMatchingResultAggregate")
     create_theragy_aggregate_day_view(tableMigrator, cfg)
 
     front_end_view_columns_stmt = ""
@@ -88,13 +118,14 @@ def create_therapy_view(tableMigrator, cfg):
                 CREATE VIEW TherapyCombined 
                 AS
                 SELECT 
-                    Demographics.*,
+                    Demographics.subject_code,
                     Robotic_Therapy.*,
                     {front_end_view_columns_stmt}
                 FROM 
                     Robotic_Therapy
                 LEFT JOIN Demographics ON Demographics.study_id == Robotic_Therapy.study_id
-                {front_end_view_join_stmt} 
+                {front_end_view_join_stmt}
+                
             '''
     tableMigrator.out_conn.execute(
         sql_command)
