@@ -2,6 +2,39 @@
 from mike_analysis.core.constants import RCCols
 from mike_analysis.core.table_migrator import SQLiteMigrator
 
+###########################################################
+# Tables
+############################################################
+
+# Can be used to copy e.g. tables needed to copy certain views
+# always specify "table_name: table_index"
+IMPORT_TABLES = {}
+
+IMPORT_ASSESSMENT_TABLES = {'$ALL_MODES'}
+
+IMPORT_THERAPY_TABLES = {}
+
+############################################################
+# Views
+############################################################
+
+# Copy over the assesment result views. make sure that the tables the views depend on are specified in IMPORT_ADDITIONAL_TABLES.
+
+# Views with one row per trial
+IMPORT_ASSESSMENT_RESULTS_FULL_VIEW = False
+# Views with average score over all trials of the same exercise
+IMPORT_ASSESSMENT_RESULTS_AGGREGATE_VIEW = False
+
+# Copy over the therapy result views:
+# Views with one row per trial
+IMPORT_THERAPY_RESULTS_FULL_VIEW = False
+# Views with average score over all trials of the same exercise
+IMPORT_THERAPY_RESULTS_AGGREGATE_VIEW = False
+
+############################################################
+# REDCap
+############################################################
+
 REDCAP_RECORD_IDENTIFIER = 'study_id'
 REDCAP_EXCLUDED_COLS = {'gender', 'handedness', 'impaired_side',
                         'details_on_stroke', 'date_mri', 'lesion_location_detailed'}
@@ -11,6 +44,10 @@ REDCAP_NAMES_AND_INDEX_COLS = {
     'robotic_assessments': ('RoboticAssessment', ['robotic_session_number']),
     'neurophysiology': ('Neurophysiology', []),
 }
+
+############################################################
+# Function to create custom views
+############################################################
 
 
 def create_study_views(migrator: SQLiteMigrator, metric_names: str):
@@ -68,3 +105,8 @@ def create_study_views(migrator: SQLiteMigrator, metric_names: str):
                 ORDER BY SubjectNr, LeftHand, IthSession
         '''
         migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
+
+
+############################################################
+# Helper functions
+############################################################
