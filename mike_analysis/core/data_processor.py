@@ -18,12 +18,13 @@ ProcessArgs = namedtuple(
 
 
 class DataProcessor:
-    def __init__(self, in_conn, out_conn, sqlite_migrator: SQLiteMigrator):
+    def __init__(self, in_conn, out_conn, sqlite_migrator: SQLiteMigrator, study_cfg):
         self.in_conn: sqlite3.Connection = in_conn
         self.out_conn: sqlite3.Connection = out_conn
         self.sqlite_migrator = sqlite_migrator
+        self.study_cfg = study_cfg
         self.metric_meta = {mode: metric_evaluator_for_mode[mode].get_result_column_info()
-                            for mode in metric_evaluator_for_mode if mode.name in cfg.IMPORT_ASSESSMENT_TABLES}
+                            for mode in metric_evaluator_for_mode if mode.name in self.study_cfg.IMPORT_ASSESSMENT_TABLES}
         self.metric_col_names_for_mode = {
             mode: [meta[0] for meta in self.metric_meta[mode]] for mode in self.metric_meta}
 
@@ -68,7 +69,7 @@ class DataProcessor:
         # Create result tables which store result results for each session/hand combination for a particular assessment
         combined_session_result_stmt_joins = ''
         for mode, evaluator in metric_evaluator_for_mode.items():
-            if mode.name not in cfg.IMPORT_ASSESSMENT_TABLES:
+            if mode.name not in self.study_cfg.IMPORT_ASSESSMENT_TABLES:
                 continue
 
             result_cols_defs = ',\n'.join(
@@ -136,12 +137,13 @@ class DataProcessor:
         '''
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_combined_session_result_stmt)
-        study_cfg.create_additional_views(
-            self.sqlite_migrator, f', '.join(all_metric_col_names))
+        if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study'):
+            study_cfg.create_additional_views(
+                self.sqlite_migrator, f', '.join(all_metric_col_names))
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
         enabled_modes = [
-            mode for mode in Modes if mode.name in cfg.IMPORT_ASSESSMENT_TABLES]
+            mode for mode in Modes if mode.name in self.study_cfg.IMPORT_ASSESSMENT_TABLES]
         self.out_conn.row_factory = sqlite3.Row
 
         # Check for missing data

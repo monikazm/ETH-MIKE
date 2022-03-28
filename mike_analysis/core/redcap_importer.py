@@ -6,7 +6,6 @@ from typing import Dict, List
 
 import pandas as pd
 
-import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
 from mike_analysis.core.constants import SqlTypes, time_measured, RCCols
 from mike_analysis.core.redcap_api import RedCap
@@ -17,10 +16,11 @@ class RedcapImporter:
     ColumnCollection = namedtuple(
         'ColumnCollection', ['key_cols', 'data_cols'])
 
-    def __init__(self, sqlite_migrator: SQLiteMigrator, out_conn: sqlite3.Connection):
+    def __init__(self, sqlite_migrator: SQLiteMigrator, out_conn: sqlite3.Connection, study_config):
         self.sqlite_migrator = sqlite_migrator
         self.out_conn = out_conn
         self.rc = RedCap(api_url=cfg.REDCAP_URL, token=cfg.RECAP_API_TOKEN)
+        self.study_cfg = study_config
 
     def _create_redcap_table(self, columns: ColumnCollection, table_name: str, table_indices: List[str]):
         """
@@ -56,7 +56,7 @@ class RedcapImporter:
         """
         # Request datadict over API
         redcap_columns = self.rc.export_columns(redcap_excluded_fields={
-                                                study_cfg.REDCAP_RECORD_IDENTIFIER} | study_cfg.REDCAP_EXCLUDED_COLS)
+                                                self.study_cfg.REDCAP_RECORD_IDENTIFIER} | self.study_cfg.REDCAP_EXCLUDED_COLS)
 
         # Request form and event metadata
         repeating_forms_and_events = self.rc.export_repeating_events()
@@ -71,7 +71,7 @@ class RedcapImporter:
         form_columns = {}
         for form in redcap_columns:
             key_cols = [
-                (study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null')]
+                (self.study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null')]
             form_events = form_to_event_map[form_to_event_map['form']
                                             == form]['unique_event_name']
 
@@ -91,7 +91,7 @@ class RedcapImporter:
             form_columns[form] = self.ColumnCollection(
                 key_cols, redcap_columns[form])
             self._create_redcap_table(
-                form_columns[form], *study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
+                form_columns[form], *self.study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
         return form_columns
 
     def _import_data_from_redcap(self, form_columns: Dict[str, ColumnCollection]):
@@ -130,7 +130,7 @@ class RedcapImporter:
             form_data = form_data.replace({pd.NA: None})
 
             # Insert records into table
-            form_table_name = study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form][0]
+            form_table_name = self.study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form][0]
             metric_column_names = ', '.join(all_col_names)
             insert_placeholder = ', '.join(['?' for _ in all_col_names])
             insert_stmt = f'INSERT OR REPLACE INTO "{form_table_name}" ({metric_column_names}) VALUES ({insert_placeholder})'
