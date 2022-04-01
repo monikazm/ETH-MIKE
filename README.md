@@ -16,7 +16,7 @@ This pipeline collects all the different data from three sources and combines it
 ## Setup
 It is adviced to install all dependencies in a separated virtual enviroment in order to not override the system dependencies. 
 
-### Bash Shell(Linux, MacOS, Windows Subsystem for Linux)
+#### Bash Shell (Linux, MacOS, Windows Subsystem for Linux)
 
 Install, create and activate the environment using:
 ```
@@ -30,7 +30,7 @@ Install the dependencies:
 pip install -r requirements.txt 
 ```
 
-### PyCharm on Windows
+#### PyCharm on Windows
 
 Alternatively you can also use the Graphical user interface of PyCharm. An step by step explanation can be found here: 
 
