@@ -13,7 +13,7 @@ This pipeline collects all the different data from three sources and combines it
 
 
 
-### Setup
+## Setup
 It is adviced to install all dependencies in a separated virtual enviroment in order to not override the system dependencies. 
 
 ### Bash Shell(Linux, MacOS, Windows Subsystem for Linux)
@@ -37,7 +37,7 @@ Alternatively you can also use the Graphical user interface of PyCharm. An step 
 [Configure virtual environment in PyCharm](https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html#existing-environment)
 
 
-### Use the pipeline with existing study
+## Use the pipeline with existing study
 
 To use the pipeline with an existing study copy simply run the main file:
 
@@ -48,6 +48,6 @@ python main.py
 If no config file is present a new file on the top level directory is created with the name `config.py`. 
 Fill in all the information specific to your machine and credentials in this file. Futhermore select a study template ba specifying a file name from `mike_analysis/study_config` like e.g. `STUDY_CONFIG = 'ksa_therapy_study'`.
 
-### Create a new study
+## Create a new study
 
 You can create a new study by using the template `mike_analysis/study_config/template_study`. There you can customize the behaviour of the pipeline further. Additional information on the different components of the pipeline is found in the documentation folder. 
