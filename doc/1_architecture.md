@@ -3,7 +3,49 @@
 ## Table of Contents
 [[_TOC_]]
 
-## Metric
+
+## Introduction
+
+The main components of the pipeline can be seen in the data flow diagram and will be explained in more detail below. 
+
+![](doc/mike_data_analysis.png)
+
+main.py copies assessment, session and patient data from the frontend database with the front-end migration module, uses the RedcapImporter to download and parse the data from the RedCap API and the DataProcessor to process the TDMS files (import, preprocessing, metric computation).
+
+The DataProcessor loops over all relevant TDMS files (1 TDMS file == 1 assessment) and processes them in parallel (import and preprocessing using file_processing.py, metric computation using the MetricEvaluator corresponding to the assessment's mode).
+
+The metric evaluator iterates over all trial metric objects defined in its *trial_metrics* field and uses them to compute metric values for all trials. The trial metric values (1 per metric and trial) are passed into the aggregator metrics objects in *aggregator_metrics* to obtain the corresponding aggregate values (1 per metric). Similarly, the metric evaluator then also iterates over its *summary_metrics* and *diff_metrics* and uses them to compute the metrics they represent.
+
+If a metric evaluator has sub (series) evaluators defined in *series_metric_evaluators*, it uses the function *get_series_idx* (needs to be implemented when creating a new evaluator for a new assessment type with multiple series) to partition the raw data (lists with one element per trial -> lists with one element per trial of that series) and then adds the metrics which are obtained by running the corresponding sub-evaluators on the respective data partitions to its own metrics.
+
+Each metric evaluator returns a dictionary which maps metric names (prefixed with the evaluator's name) to the corresponding scalar metric values. For the top-level evaluator of a certain assessment type, this directly corresponds to the row to be inserted into the corresponding database result table, which is then done by the DataProcessor.
+
+## Frontend Migration
+
+This part of the code directly copies tables, indicies and views, that are specified in the study config, from the front end database so that they can be used for analysis. 
+
+[file_processing.py]: ../mike_analysis/core/frontend_migration.py
+
+
+## Data Processor
+
+The DataProcessor is responsible for:
+1. Creating database tables to store the computed metrics
+2. Creating database views which make it easier to work with the data in an ad-hoc fashion (e.g. from an R console) or to export the data in a human-readable format
+3. Importing raw data, preprocessing the data (running [precomputers](#precomputer), changing sign for right-hand data, splitting into trials)) and obtaining metrics by running the mode-specific metric evaluator for every relevant TDMS file
+4. Storing the obtained metrics in the database
+
+The metric column names and types which are needed to create the tables in 1. are obtained from the respective root metric evaluator for each assessment mode.
+
+The list of relevant TDMS file paths (i.e. TDMS files corresponding to finished assessments) can be reconstructed from the assessment, patient and session metadata tables which are copied over from the frontend database.
+
+The helper functions used for importing and preprocessing individual TDMS files are located in [file_processing.py].
+
+To improve performance, all TDMS files are processed in parallel.
+
+[file_processing.py]: ../mike_analysis/core/file_processing.py
+
+### Metrics
 A Metric class defines how a certain metric is computed.
 There are four different kinds of metrics:
 - **Trial Metric**: A metric which is computed for every single trial. Each `TrialMetric` subclass has to implement a function which gets as input the raw data corresponding to a single trial (with Time starting at 0.0, only rows of the same trial and where TargetState == True) and produces a single scalar value as output.  
@@ -16,9 +58,11 @@ There are four different kinds of metrics:
 
 It is possible to add new metrics to the system by implementing additional `TrialMetric/AggregateMetric/SummaryMetric` subclasses.
 
-## Metric Evaluator
+### Metric Evaluator
 
 A Metric Evaluator class defines which metrics are to be computed for a particular assessment mode (e.g. Force, Range of Motion) or subseries of an assessment mode (e.g. Flexion/Extension for Force, Active/Passive/Auto for ROM).
+
+[metric evaluators]: ../mike_analysis/evaluators
 
 ### Evaluation Logic
 
@@ -59,7 +103,7 @@ To define an evaluator for a new task, simply:
 
 See existing [metric evaluators] implementations for examples.
 
-## Precomputer
+### Precomputer
 
 It is often the case, that the same intermediate results are required to compute several different metrics. An important example would be the movement velocity, which is not part of the raw data and needs to be computed from derivative of the position.
 
@@ -89,21 +133,6 @@ class SomeMetric(TrialMetric):
 It's important that the same precomputer object is used in all locations where the precomputed value/column is required. Different instances of the same precomputer class (e.g. vel1 = VelocityPrecomputer(), vel2 = VelocityPrecomputer()) are treated as different precomputers (-> same precomputation is performed twice).
 
 Finally, Precomputers classes can also have a `requires` field with which they can depend on other Precomputers. (e.g. AbsVelocity precomputer depends on Velocity precomputer). The system will automatically ensure that the precomputers on which a precomputer depends are computed before the precomputer itself, but it is up to the user to ensure that there are no cyclic dependencies (e.g. precomputer a requiring precomputer b which requires a).
-## Data Processor
-
-The DataProcessor is responsible for:
-1. Creating database tables to store the computed metrics
-2. Creating database views which make it easier to work with the data in an ad-hoc fashion (e.g. from an R console) or to export the data in a human-readable format
-3. Importing raw data, preprocessing the data (running [precomputers](#precomputer), changing sign for right-hand data, splitting into trials)) and obtaining metrics by running the mode-specific metric evaluator for every relevant TDMS file
-4. Storing the obtained metrics in the database
-
-The metric column names and types which are needed to create the tables in 1. are obtained from the respective root metric evaluator for each assessment mode.
-
-The list of relevant TDMS file paths (i.e. TDMS files corresponding to finished assessments) can be reconstructed from the assessment, patient and session metadata tables which are copied over from the frontend database.
-
-The helper functions used for importing and preprocessing individual TDMS files are located in [file_processing.py].
-
-To improve performance, all TDMS files are processed in parallel.
 
 ## RedCap Importer
 
@@ -123,20 +152,13 @@ Example: Demographics form appears only in one event, no repetitions => `primary
 
 For 2. the data can be retrieved using the RedCap `export_records` API, which returns one giant table with all the data for all forms from which the individual rows to insert into the database tables can then be extracted.
 
-## The Big Picture
+[redcap_importer.py]: ../mike_analysis/core/redcap_importer.py
 
-main.py copies assessment, session and patient data from the frontend database, uses the RedcapImporter to download and parse the data from the RedCap API and the DataProcessor to process the TDMS files (import, preprocessing, metric computation).
-
-The DataProcessor loops over all relevant TDMS files (1 TDMS file == 1 assessment) and processes them in parallel (import and preprocessing using file_processing.py, metric computation using the MetricEvaluator corresponding to the assessment's mode).
-
-The metric evaluator iterates over all trial metric objects defined in its *trial_metrics* field and uses them to compute metric values for all trials. The trial metric values (1 per metric and trial) are passed into the aggregator metrics objects in *aggregator_metrics* to obtain the corresponding aggregate values (1 per metric). Similarly, the metric evaluator then also iterates over its *summary_metrics* and *diff_metrics* and uses them to compute the metrics they represent.
-
-If a metric evaluator has sub (series) evaluators defined in *series_metric_evaluators*, it uses the function *get_series_idx* (needs to be implemented when creating a new evaluator for a new assessment type with multiple series) to partition the raw data (lists with one element per trial -> lists with one element per trial of that series) and then adds the metrics which are obtained by running the corresponding sub-evaluators on the respective data partitions to its own metrics.
-
-Each metric evaluator returns a dictionary which maps metric names (prefixed with the evaluator's name) to the corresponding scalar metric values. For the top-level evaluator of a certain assessment type, this directly corresponds to the row to be inserted into the corresponding database result table, which is then done by the DataProcessor.
-
-
-[file_processing.py]: ../mike_analysis/core/file_processing.py
-[study_config.py]: ../mike_analysis/study_config.py
 [redcap_api.py]: ../mike_analysis/core/redcap_api.py
-[metric evaluators]: ../mike_analysis/evaluators
+
+## Study config
+
+The study configuration is used to determine, what is copied from the frontend, what is imported from REDCap and how all the information is combined into additional study specific views in the output database. If you want to create a new study you can copy the template and fill in all the required information. Add the code needed for additional study specific views or modifications to the output database to the `create_study_views(migrator: SQLiteMigrator)` function. This function will be called in the end and has therefore acces to everything that was already transfered into the output database. 
+
+[study_config.py]: ../mike_analysis/study_config.py
+
