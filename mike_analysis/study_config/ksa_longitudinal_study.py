@@ -1,6 +1,6 @@
 # This file may need to be adapted for different studies with different redcap tables
 from mike_analysis.core.constants import RCCols
-from mike_analysis.core.table_migrator import SQLiteMigrator
+from mike_analysis.core.sqlite_migrator import SQLiteMigrator
 
 ###########################################################
 # Tables
@@ -10,7 +10,8 @@ from mike_analysis.core.table_migrator import SQLiteMigrator
 # always specify "table_name: table_index"
 IMPORT_TABLES = {}
 
-IMPORT_ASSESSMENT_TABLES = {'$ALL_MODES'}
+IMPORT_ASSESSMENT_TABLES = {'RangeOfMotion', 'Force',
+                            'TargetFollowing', 'PositionMatch', 'PreciseReaching', 'TargetReaching'}
 
 IMPORT_THERAPY_TABLES = {}
 

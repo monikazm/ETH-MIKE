@@ -131,6 +131,9 @@ class SQLiteMigrator:
         return ', '.join([f'{prefix}{col}' for col in self.out_get_all_columns_except(table, ignore_list)])
 
     def migrate_table_and_index(self, table_name: str, index_name: str, filter_cond: str = ''):
-        self.migrate_table_index_or_view(table_name, overwrite=True)
-        self.migrate_table_index_or_view(index_name, overwrite=True)
-        self.migrate_table_data(table_name, filter_cond)
+        if table_name != '':
+            print(table_name)
+            self.migrate_table_index_or_view(table_name, overwrite=True)
+            if index_name != '':
+                self.migrate_table_index_or_view(index_name, overwrite=True)
+            self.migrate_table_data(table_name, filter_cond)
