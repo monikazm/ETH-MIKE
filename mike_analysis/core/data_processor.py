@@ -138,7 +138,7 @@ class DataProcessor:
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_combined_session_result_stmt)
         if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study'):
-            study_cfg.create_additional_views(
+            self.study_cfg.create_additional_views(
                 self.sqlite_migrator, f', '.join(all_metric_col_names))
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):

@@ -51,7 +51,7 @@ REDCAP_NAMES_AND_INDEX_COLS = {
 ############################################################
 
 
-def create_study_views(migrator: SQLiteMigrator, metric_names: str):
+def create_additional_views(migrator: SQLiteMigrator, metric_names: str):
     """In this function you can create additional views in the output database if needed."""
 
     # Create additional views
