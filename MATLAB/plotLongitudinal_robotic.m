@@ -4,29 +4,40 @@ function plotLongitudinal_robotic(array,names,axisDir)
 
 
 %% Define colors to be used %% 
-colors =    {[0, 0.4470, 0.7410]                    
-          	[0.8500, 0.3250, 0.0980]	          	
+colors = {  [0.8500, 0.3250, 0.0980]
+            [1, 0, 0]    
           	[0.9290, 0.6940, 0.1250]	          	
           	[0.4940, 0.1840, 0.5560]	          	
           	[0.4660, 0.6740, 0.1880]	          	
           	[0.3010, 0.7450, 0.9330]	          	 
           	[0.6350, 0.0780, 0.1840]	
             [0.25, 0.25, 0.25]
-            [0, 0.5, 0]
-            [1, 0, 0]
+            [0.1, 0.7, 0]
+            [0, 0.4470, 0.7410] 
             [0.75, 0, 0.75]
             [0.75, 0.75, 0]
             [0, 0, 1]
-            [0, 1, 0]
+            [178/255, 255/255, 102/255]
             [0.75, 0.75, 0.75]
             [0.8, 0.4, 0]
             [0.25, 0.75, 0.5]
             [1.0, 0.4, 0.6]
+            [0.45, 0.65, 0.87]
+            [0.7, 0.6, 0.5]
+            [1, 0.6, 0.1]
+            [0.65, 0.32, 0.12]
+            [0, 0.4470, 0.7410]
+            [0.8500, 0.3250, 0.0980]	
+            [0.9290, 0.6940, 0.1250]	
+            [0.4940, 0.1840, 0.5560]	
+            [0.453, 0.587, 0.978]
+            [102/255 255/255 102/255]
+            [255/255 128/255 0/255]
+            [204/255 0/255 204/255]
+            [102/255 178/255 255/255]
             };
 
-
 %% plot longitudinal data - individual subjects 
-% N = 11
 
 for j = 1:length(names)
 
@@ -45,14 +56,14 @@ for j = 1:length(names)
     end
     %legend show
     set(gca,'FontSize',12)
-    xlim([0.5 6.5]) 
-    xticks([1 2 3 4 5 6]) 
+    xlim([0.5 8.5]) 
+    xticks([1 2 3 4 5 6 7 8]) 
     xlabel('Robotic Session Nr.') 
     if axisDir(j) == 1
         set (gca,'YDir','reverse')
     end
     ylabel(names{j}) 
-    print(['Plots/LongitudinalPlots/210120_Indiv_' names{j}],'-dpng')
+    print(['Plots/LongitudinalPlots/robotic/210518_Indiv_' names{j}],'-dpng')
 
 end
 
@@ -110,7 +121,7 @@ for j = 1:length(names)
         set (gca,'YDir','reverse')
     end
     ylabel(names{j}) 
-    print(['Plots/LongitudinalPlots/210120_Sum_' names{j}],'-dpng')
+    print(['Plots/LongitudinalPlots/robotic/210518_Sum_' names{j}],'-dpng')
 
 end
 

@@ -30,14 +30,14 @@ colors =    {[0, 0.4470, 0.7410]
 
 %% read table %% 
 
-T = readtable('20210119_dbExport_impaired.csv'); 
+T = readtable('20210408_DataImpaired.csv'); 
 M = readtable('20210121_metricInfo.csv'); 
 ID = 36; 
 SRD_sensory = table2array(M(ID,7)); 
 % 28 - force flex
 % 6 - AROM
 % 74 - max vel ext
-ID = 28; 
+ID = 74; 
 SRD_motor = table2array(M(ID,7)); 
 healthyAvrg = table2array(M(ID,6));
 
@@ -46,7 +46,7 @@ healthyAvrg = table2array(M(ID,6));
 % 92 - AROM
 % 160 - max vel ext
 
-A = table2array(T(:,[3 5 122 114])); 
+A = table2array(T(:,[3 5 122 160])); 
 
 %% clean-up the table 
 
@@ -111,9 +111,9 @@ for i = 1:length(C(:,1))
     end
 end
 
-change(:,1) = Sesh1(:,1); 
-change(:,2) = Sesh1(:,3) - Sesh3(:,3); 
-change(:,3) = Sesh3(:,4) - Sesh1(:,4); 
+change(:,1) = Sesh1(1:17,1); 
+change(:,2) = Sesh1(1:17,3) - Sesh3(1:17,3); % change in sensory
+change(:,3) = Sesh3(1:17,4) - Sesh1(1:17,4); % change in motor 
 
 n = 1; 
 m = 1; 
@@ -170,11 +170,11 @@ for i=2:length(change)
 end
 %legend show
 set(gca,'FontSize',12)
-xlim([-10 15])
-ylim([-10 15])
+%xlim([-10 15])
+%ylim([-10 15])
 xlabel('Change in sensory') 
 ylabel('Change in motor') 
-print('Plots/ScatterPlots/210127_ChangeMotorSensory','-dpng')
+print('Plots/ScatterPlots/210418_ChangeMotorSensory_velExt','-dpng')
 
 
 

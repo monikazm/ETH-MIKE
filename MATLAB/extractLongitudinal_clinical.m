@@ -35,18 +35,21 @@ C = sortrows(withREDCap2,'ascend');
 
 % remove those rows where there is only one data point
 n = 1; 
-remove = []; 
+remove = [];
+
 for i=1:max(C(:,1))
+
     temp = find(C(:,1)==i); 
     if length(temp) == 1
         remove(n) = temp; 
         n = n+1; 
     end
+
 end
 C(remove,:) = []; 
 
 % remove all rows for which clinical data doesn't exist 
-temp = find(isnan(C(:,3))); 
+temp = find(isnan(C(:,7))); 
 C(temp,:) = []; 
 
 % change all 3rd into second session 

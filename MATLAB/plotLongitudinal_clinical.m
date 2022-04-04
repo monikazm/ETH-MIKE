@@ -4,8 +4,9 @@ function plotLongitudinal_clinical(array,names,axisDir)
 
 
 %% Define colors to be used %% 
-colors =    {[0, 0.4470, 0.7410]                    
-          	[0.8500, 0.3250, 0.0980]	          	
+colors =    {                 
+          	[0.8500, 0.3250, 0.0980]
+            [1, 0, 0] 
           	[0.9290, 0.6940, 0.1250]	          	
           	[0.4940, 0.1840, 0.5560]	          	
           	[0.4660, 0.6740, 0.1880]	          	
@@ -13,7 +14,7 @@ colors =    {[0, 0.4470, 0.7410]
           	[0.6350, 0.0780, 0.1840]	
             [0.25, 0.25, 0.25]
             [0, 0.5, 0]
-            [1, 0, 0]
+            [0, 0.4470, 0.7410] 
             [0.75, 0, 0.75]
             [0.75, 0.75, 0]
             [0, 0, 1]
@@ -22,11 +23,15 @@ colors =    {[0, 0.4470, 0.7410]
             [0.8, 0.4, 0]
             [0.25, 0.75, 0.5]
             [1.0, 0.4, 0.6]
+            [0.45, 0.65, 0.87]
+            [0.7, 0.6, 0.5]
+            [1, 0.6, 0.1]
+            [0.65, 0.32, 0.12]
             };
 
 
 %% plot longitudinal data - individual subjects 
-% N = 11
+
 
 for j = 1:length(names)
 
@@ -48,7 +53,7 @@ for j = 1:length(names)
         set (gca,'YDir','reverse')
     end
     ylabel(names{j}) 
-    print(['Plots/LongitudinalPlots/clinical/210121_Indiv_' names{j}],'-dpng')
+    print(['Plots/LongitudinalPlots/clinical/210409_Indiv_' names{j}],'-dpng')
 
 end
 
@@ -93,7 +98,7 @@ for j = 1:length(names)
         set (gca,'YDir','reverse')
     end
     ylabel(names{j}) 
-    print(['Plots/LongitudinalPlots/clinical/210121_Sum_' names{j}],'-dpng')
+    print(['Plots/LongitudinalPlots/clinical/210409_Sum_' names{j}],'-dpng')
 
 end
 
