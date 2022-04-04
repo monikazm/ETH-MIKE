@@ -223,7 +223,7 @@ def __create_assessment_view(tableMigrator):
                 FROM 
                     RoboticAssessment
                 LEFT JOIN Demographics ON Demographics.study_id == RoboticAssessment.study_id
-                LEFT JOIN AssessmentMetrics ON AssessmentMetrics.SubjectNr == Demographics.subject_code
+                LEFT JOIN AssessmentMetrics ON AssessmentMetrics.SubjectNr == Demographics.subject_code and AssessmentMetrics.SessionStartDate == RoboticAssessment.date_robotic_assessment
                 
             '''
     tableMigrator.out_conn.execute(
