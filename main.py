@@ -56,7 +56,7 @@ def import_and_process_everything(db_path: str, polybox_upload_dir: str, data_di
             processor.create_result_views(combined_session_result_stmt_joins)
         processor.compute_and_store_metrics(data_dir, polybox_upload_dir)
 
-        if (user_cfg.STUDY_CONFIG != 'ksa_longitudinal_study'):
+        if (user_cfg.STUDY_CONFIG != 'ksa_longitudinal_study' and user_cfg.REDCAP_IMPORT):
             study_cfg.create_study_views(migrator)
 
     finally:

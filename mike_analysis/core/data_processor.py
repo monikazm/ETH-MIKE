@@ -137,7 +137,7 @@ class DataProcessor:
         '''
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_combined_session_result_stmt)
-        if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study'):
+        if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study' and cfg.REDCAP_IMPORT):
             self.study_cfg.create_additional_views(
                 self.sqlite_migrator, f', '.join(all_metric_col_names))
 
