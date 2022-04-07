@@ -32,6 +32,7 @@ class RedcapImporter:
         """
         redcap_column_defs = ',\n'.join([f'"{name}" {type_name}' for name, type_name in (
             columns.key_cols + columns.data_cols)])
+        print(redcap_column_defs)
         comma_separated_key_column_names = ', '.join(
             f'"{col}"' for col, _ in columns.key_cols)
         create_redcap_table_stmt = f'''
@@ -86,10 +87,12 @@ class RedcapImporter:
 
             # Include redcap_repeat_instance for repeated forms and events
             if form_is_repeated_in_any_event or (form_events.isin(repeating_events)).any():
-                key_cols.append((RCCols.RepeatInst, 'integer not null'))
+                key_cols.append((RCCols.RepeatInst, 'integer'))
 
             form_columns[form] = self.ColumnCollection(
                 key_cols, redcap_columns[form])
+            print(form_columns[form])
+            print(form)
             self._create_redcap_table(
                 form_columns[form], *self.study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
         return form_columns
@@ -139,6 +142,11 @@ class RedcapImporter:
 
     def import_all_from_redcap(self):
         """Create tables in database based on RedCap metadata and populate them with record data from RedCap."""
+
+        with time_measured('redcap metadata import and table creation'):
+            form_columns = self._create_tables_from_redcap_metadata()
+        with time_measured('redcap data import'):
+            self._import_data_from_redcap(form_columns)
 
         try:
             with time_measured('redcap metadata import and table creation'):
