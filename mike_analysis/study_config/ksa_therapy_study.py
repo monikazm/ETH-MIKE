@@ -218,8 +218,8 @@ def __create_assessment_view(tableMigrator):
                 AS
                 SELECT 
                     Demographics.*,
-                    RoboticAssessment.*, 
                     ClinicalAssessment.*,   
+                    RoboticAssessment.*, 
                     AssessmentMetrics.*
                 FROM 
                     RoboticAssessment
