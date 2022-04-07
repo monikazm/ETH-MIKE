@@ -1,6 +1,5 @@
-%% change motor / sensory - how do they relate?  %% 
-% 3 groups
-% created: 24.11.2021
+%% Figure SM5 - demographics and stroke-related factors explaining differences between groups  %% 
+% created: 05.04.2022
 
 clear 
 close all
