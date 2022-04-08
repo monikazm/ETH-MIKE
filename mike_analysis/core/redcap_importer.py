@@ -32,7 +32,6 @@ class RedcapImporter:
         """
         redcap_column_defs = ',\n'.join([f'"{name}" {type_name}' for name, type_name in (
             columns.key_cols + columns.data_cols)])
-        print(redcap_column_defs)
         comma_separated_key_column_names = ', '.join(
             f'"{col}"' for col, _ in columns.key_cols)
         create_redcap_table_stmt = f'''
@@ -91,8 +90,6 @@ class RedcapImporter:
 
             form_columns[form] = self.ColumnCollection(
                 key_cols, redcap_columns[form])
-            print(form_columns[form])
-            print(form)
             self._create_redcap_table(
                 form_columns[form], *self.study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
         return form_columns
