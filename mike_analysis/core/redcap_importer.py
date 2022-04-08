@@ -70,28 +70,30 @@ class RedcapImporter:
         # and build corresponding tables
         form_columns = {}
         for form in redcap_columns:
-            key_cols = [
-                (self.study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null')]
-            form_events = form_to_event_map[form_to_event_map['form']
-                                            == form]['unique_event_name']
+            if form in self.study_cfg.REDCAP_NAMES_AND_INDEX_COLS.keys():
+                key_cols = [
+                    (self.study_cfg.REDCAP_RECORD_IDENTIFIER, 'integer not null')]
+                form_events = form_to_event_map[form_to_event_map['form']
+                                                == form]['unique_event_name']
 
-            # Include redcap_event_name if instrument appears in multiple events
-            if len(form_events) > 1:
-                key_cols.append((RCCols.EventName, f'varchar not null'))
+                # Include redcap_event_name if instrument appears in multiple events
+                if len(form_events) > 1:
+                    key_cols.append((RCCols.EventName, f'varchar not null'))
 
-            # Include redcap_repeat_instrument if form is repeated in any of the events
-            form_is_repeated_in_any_event = (repeating_forms == form).any()
-            if form_is_repeated_in_any_event:
-                key_cols.append((RCCols.RepeatInstrument, 'varchar not null'))
+                # Include redcap_repeat_instrument if form is repeated in any of the events
+                form_is_repeated_in_any_event = (repeating_forms == form).any()
+                if form_is_repeated_in_any_event:
+                    key_cols.append(
+                        (RCCols.RepeatInstrument, 'varchar not null'))
 
-            # Include redcap_repeat_instance for repeated forms and events
-            if form_is_repeated_in_any_event or (form_events.isin(repeating_events)).any():
-                key_cols.append((RCCols.RepeatInst, 'integer'))
+                # Include redcap_repeat_instance for repeated forms and events
+                if form_is_repeated_in_any_event or (form_events.isin(repeating_events)).any():
+                    key_cols.append((RCCols.RepeatInst, 'integer'))
 
-            form_columns[form] = self.ColumnCollection(
-                key_cols, redcap_columns[form])
-            self._create_redcap_table(
-                form_columns[form], *self.study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
+                form_columns[form] = self.ColumnCollection(
+                    key_cols, redcap_columns[form])
+                self._create_redcap_table(
+                    form_columns[form], *self.study_cfg.REDCAP_NAMES_AND_INDEX_COLS[form])
         return form_columns
 
     def _import_data_from_redcap(self, form_columns: Dict[str, ColumnCollection]):

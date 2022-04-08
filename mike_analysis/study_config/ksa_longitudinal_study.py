@@ -44,9 +44,6 @@ REDCAP_NAMES_AND_INDEX_COLS = {
     'clinical_assessments': ('ClinicalAssessment', []),
     'robotic_assessments': ('RoboticAssessment', ['robotic_session_number']),
     'neurophysiology': ('Neurophysiology', []),
-    'adverse_events': ('AdverseEvents', []),
-    'device_deficiency': ('DeviceDeficiency', []),
-    'end_of_study_report': ('EndOfStudyReport', [])
 }
 
 ############################################################
