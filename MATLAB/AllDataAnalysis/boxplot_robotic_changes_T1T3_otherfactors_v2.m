@@ -25,8 +25,9 @@ T = readtable('data/20211013_DataImpaired.csv');
 % 160 - max vel ext
 % 127 - smoothness MAPR
 % 8 - age
+% 9 - gender 
 
-A = table2array(T(:,[3 5 47 41 48 61 122 114 92 160 8])); 
+A = table2array(T(:,[3 5 47 41 48 61 122 114 92 160 8 9])); 
 % subject session kUDT FMA BBT MoCA PM Force ROM Vel Age TSS
 
 %% time since stroke
@@ -37,7 +38,7 @@ timeSinceStroke = [];
 for i=1:length(timeStroke)
     timeSinceStroke(i,:) = datenum(timeRoboticTest{i,1}) - datenum(timeStroke{i,1}); 
 end
-A(:,12) = timeSinceStroke; 
+A(:,13) = timeSinceStroke; 
 
 %% clean-up the table 
 
@@ -67,6 +68,7 @@ withREDCap2(:,9) = withREDCap(:,9);
 withREDCap2(:,10) = withREDCap(:,10);
 withREDCap2(:,11) = withREDCap(:,11);
 withREDCap2(:,12) = withREDCap(:,12);
+withREDCap2(:,13) = withREDCap(:,13);
 
 C = sortrows(withREDCap2,'ascend'); 
 
@@ -174,7 +176,7 @@ g2 = repmat({'No change (N=15)'},length(nochange.S1(:,1)),1);
 g = [g1;g2]; 
 
 figure; 
-boxplot([change.S1(:,12); nochange.S1(:,12)],g) 
+boxplot([change.S1(:,13); nochange.S1(:,13)],g) 
 b = findobj(gca,'tag','Median');
 set(b,{'linew'},{2})
 colors = {[0.85, 0.85, 0.85], [0.85, 0.85, 0.85]};  
@@ -183,11 +185,11 @@ for j=1:length(h)
     patch(get(h(j),'XData'),get(h(j),'YData'),colors{:,j},'FaceAlpha',0.5);
 end
 hold on 
-for i=1:length(change.S1(:,12))
-    scatter(1,change.S1(i,12),'filled','k'); 
+for i=1:length(change.S1(:,13))
+    scatter(1,change.S1(i,13),'filled','k'); 
 end
-for i=1:length(nochange.S1(:,12))
-    scatter(2,nochange.S1(i,12),'filled','k');
+for i=1:length(nochange.S1(:,13))
+    scatter(2,nochange.S1(i,13),'filled','k');
 end
 xlabel('Groups') 
 ylabel('Time since stroke @ T1') 
@@ -199,7 +201,7 @@ m_tss(1,2) = nanmean(nochange.S1(:,12));
 m_tss(2,2) = nanstd(nochange.S1(:,12)); 
 
 % statistical difference  
-p_tss = kruskalwallis([change.S1(:,12); nochange.S1(:,12)],g); 
+p_tss = kruskalwallis([change.S1(:,13); nochange.S1(:,13)],g); 
 
 %% age
 
@@ -252,7 +254,30 @@ print('plots/BoxPlots/211126_ChangeGroups_MoCA','-dpng')
 % statistical difference  
 p_moca = kruskalwallis([change.S1(:,6); nochange.S1(:,6)],g); 
 
+%% gender
 
+figure; 
+boxplot([change.S1(:,12); nochange.S1(:,12)],g) 
+b = findobj(gca,'tag','Median');
+set(b,{'linew'},{2})
+colors = {[0.85, 0.85, 0.85], [0.85, 0.85, 0.85]};  
+h = findobj(gca,'Tag','Box');
+for j=1:length(h)
+    patch(get(h(j),'XData'),get(h(j),'YData'),colors{:,j},'FaceAlpha',0.5);
+end
+hold on 
+for i=1:length(change.S1(:,12))
+    scatter(1,change.S1(i,12),'filled','k'); 
+end
+for i=1:length(nochange.S1(:,12))
+    scatter(2,nochange.S1(i,12),'filled','k');
+end
+xlabel('Groups') 
+ylabel('Gender') 
+print('plots/BoxPlots/220414_ChangeGroups_Gender','-dpng')
+
+% statistical difference  
+p_gender = kruskalwallis([change.S1(:,12); nochange.S1(:,12)],g); 
 
 
 
