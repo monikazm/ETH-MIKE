@@ -8,10 +8,13 @@ from mike_analysis.core.sqlite_migrator import SQLiteMigrator
 
 # Can be used to copy e.g. tables needed to copy certain views
 # always specify "table_name: table_index"
-IMPORT_TABLES = {}
+IMPORT_TABLES = {
+    'Session': "Session_PatientId",
+    'Patient': 'Patient_SubjectNr',
+    'Assessment': 'Assessment_SessionId'}
 
 IMPORT_ASSESSMENT_TABLES = {'RangeOfMotion', 'Force',
-                            'TargetFollowing', 'PositionMatch', 'PreciseReaching', 'TargetReaching'}
+                            'TargetFollowing', 'PositionMatch', 'TargetReaching'}
 
 IMPORT_THERAPY_TABLES = {}
 
