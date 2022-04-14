@@ -42,6 +42,15 @@ class Modes(IntEnum):
     PreciseReaching = 5
 
 
+class ModeResults(IntEnum):
+    RangeOfMotionResult = 0
+    ForceResult = 1
+    TargetReachingResult = 2
+    TargetFollowingResult = 3
+    PositionMatchResult = 4
+    PreciseReachingResult = 5
+
+
 # Assessment mode descriptions (== name of assessment folders in data folder)
 ModeDescs = {
     Modes.RangeOfMotion: 'Range Of Motion Task',
