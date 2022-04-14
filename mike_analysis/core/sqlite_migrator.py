@@ -41,7 +41,6 @@ class SQLiteMigrator:
 
     def create_or_update_table_index_or_view_from_stmt(self, create_stmt: str, overwrite: bool = False):
         create_elem_stmt_in = re.sub(r'\s+', ' ', create_stmt.strip())
-
         match = self.extract_type_pattern.search(create_elem_stmt_in)
         if not match:
             raise RuntimeError(

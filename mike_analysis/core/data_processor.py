@@ -6,9 +6,8 @@ from contextlib import nullcontext
 
 import pandas as pd
 
-import mike_analysis.study_config as study_cfg
 from mike_analysis.cfg import config as cfg
-from mike_analysis.core.constants import Tables, Modes, ModeDescs, time_measured, colored_print, TColor, dict_factory
+from mike_analysis.core.constants import Tables, Modes, ModeResults, ModeDescs, time_measured, colored_print, TColor, dict_factory
 from mike_analysis.core.file_processing import process_tdms, search_and_extract_tdms_from_zips
 from mike_analysis.core.sqlite_migrator import SQLiteMigrator
 from mike_analysis.evaluators import metric_evaluator_for_mode
@@ -85,7 +84,7 @@ class DataProcessor:
             combined_session_result_stmt_joins += f'LEFT JOIN {Tables.MetricResults[mode]} USING(AssessmentId)\n'
         return combined_session_result_stmt_joins
 
-    def create_result_views(self, combined_session_result_stmt_joins: str):
+    def create_pseudo_session_view(self):
         # Create Pseudo Session View
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt('''
             CREATE VIEW "PseudoSession" AS
@@ -112,6 +111,10 @@ class DataProcessor:
             ) USING(PatientId, LeftHand, IthSession)
         ''')
 
+    def create_result_views(self, combined_session_result_stmt_joins: str):
+
+        self.create_pseudo_session_view()
+
         all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values(
         ) for name in metric_col_names]
         metric_names = ', '.join(
@@ -137,13 +140,15 @@ class DataProcessor:
         '''
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_combined_session_result_stmt)
-        if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study' and cfg.REDCAP_IMPORT):
+        if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study'):
             self.study_cfg.create_additional_views(
                 self.sqlite_migrator, f', '.join(all_metric_col_names))
 
     def compute_and_store_metrics(self, data_dir: str, polybox_upload_dir: str):
+        result_modes_list = [
+            s + "Result" for s in self.study_cfg.IMPORT_ASSESSMENT_TABLES]
         enabled_modes = [
-            mode for mode in Modes if mode.name in self.study_cfg.IMPORT_ASSESSMENT_TABLES]
+            mode for mode in ModeResults if mode.name in result_modes_list]
         self.out_conn.row_factory = sqlite3.Row
 
         # Check for missing data
@@ -233,7 +238,6 @@ class DataProcessor:
                                      for _ in range(len(db_trial_results) // 2)]
             todo_assessments[mode].append(ProcessArgs(
                 full_tdms_path, db_trial_results, assessment_id, task_type, left_hand))
-
         # Compute metrics in parallel
         with multiprocessing.Pool() if cfg.ENABLE_MULTICORE else nullcontext() as p:
             map_ = p.map if cfg.ENABLE_MULTICORE else map
