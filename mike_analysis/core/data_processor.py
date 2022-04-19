@@ -115,6 +115,8 @@ class DataProcessor:
 
         self.create_pseudo_session_view()
 
+        session_result_view_name = 'SessionResult'
+
         all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values(
         ) for name in metric_col_names]
         metric_names = ', '.join(
@@ -140,7 +142,7 @@ class DataProcessor:
         '''
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_combined_session_result_stmt)
-        if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study'):
+        if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study' and cfg.REDCAP_IMPORT):
             self.study_cfg.create_additional_views(
                 self.sqlite_migrator, f', '.join(all_metric_col_names))
 

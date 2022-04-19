@@ -84,7 +84,7 @@ def create_additional_views(migrator: SQLiteMigrator, metric_names: str):
                     {migrator.columns_except('Demographics', 'D', [REDCAP_RECORD_IDENTIFIER, 'subject_code'])},
                     {migrator.columns_except(redcap_view, 'V', [REDCAP_RECORD_IDENTIFIER, RCCols.EventName, RCCols.RepeatInst, 'IthSession'])},
                     {metric_names}
-                FROM SessionResult AS R
+                FROM AssessmentMetrics AS R
                 LEFT JOIN Demographics AS D ON(D.subject_code == R.SubjectNr)
                 LEFT JOIN {redcap_view} AS V USING({REDCAP_RECORD_IDENTIFIER}, IthSession)
                 WHERE {where_cond}
@@ -92,6 +92,7 @@ def create_additional_views(migrator: SQLiteMigrator, metric_names: str):
         data_impaired_view, create_stmt = \
             create_full_data_view('DataImpaired', impaired_rc_view,
                                   where_cond='(R.LeftHand AND R.LeftImpaired) OR (NOT R.LeftHand AND R.RightImpaired)')
+        print(create_stmt)
         migrator.create_or_update_table_index_or_view_from_stmt(create_stmt)
         data_non_impaired_view, create_stmt = \
             create_full_data_view('DataNonImpaired', non_impaired_rc_view,
