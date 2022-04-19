@@ -115,8 +115,6 @@ class DataProcessor:
 
         self.create_pseudo_session_view()
 
-        session_result_view_name = 'SessionResult'
-
         all_metric_col_names = [name for metric_col_names in self.metric_col_names_for_mode.values(
         ) for name in metric_col_names]
         metric_names = ', '.join(
