@@ -53,9 +53,6 @@ REDCAP_NAMES_AND_INDEX_COLS = {
     'robotic_assessments': ('RoboticAssessment', ['robotic_assessment_session']),
     'robotic_therapy': ('Robotic_Therapy', []),
     'usability': ('Usability', []),
-    'adverse_events': ('Adverse Events', []),
-    'device_deficiency': ('Device Deficiency', []),
-    'end_of_study_report': ('End of Study Report', [])
 }
 
 
