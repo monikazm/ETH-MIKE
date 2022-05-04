@@ -6,7 +6,8 @@ from mike_analysis.core.constants import Modes
 
 __this_folder = Path(os.path.dirname(os.path.realpath(__file__)))
 with open(os.path.join(__this_folder, 'config.py.template')) as file:
-    _TEMPLATE = file.read().replace("'$ALL_MODES'", ', '.join([f"'{mode.name}'" for mode in Modes])).lstrip()
+    _TEMPLATE = file.read().replace("'$ALL_MODES'", ', '.join(
+        [f"'{mode.name}'" for mode in Modes])).lstrip()
 
 __config_file_path = __this_folder.parent.joinpath('config.py')
 if not __config_file_path.exists():

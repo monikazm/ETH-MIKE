@@ -4,10 +4,11 @@
 - **[metric_metadata_defaults.csv]**: CSV file where you can define healthy avg and Srd values for different metrics
 - **[mike_analysis]**: Source code folder
 - **config.py** (generated after first run): configuration file to specify settings 
+- **[main.py]**: Entry point
 
 ## Code Folder (mike_analysis) 
 ### Files
-- **[main.py]**: Entry point
+
 - **[config.py.template]**: When there is no config.py, a new one is generated based on the contents of this file
 - **[cfg.py]**: Loads config.py at runtime (code can then access the values in config.py via the cfg.config variable)
 - **[study_config.py]**: Contains stuff which is specific to your redcap structure. Change in redcap structure (form names, new form, rename of some key fields like subject_code) => need to adjust study_config.py.

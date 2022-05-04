@@ -17,11 +17,13 @@ PATH_TO_DATA_ROOT_DIR = r'C:\Users\SomeUser\Desktop\StudyName'
 DB_PATH = r''
 USE_DB_FROM_UPLOAD_DIR = True
 
-IMPORT_ASSESSMENTS = {'$ALL_MODES'}
-
 # If True, this script will download all data from redcap whenever it is run
-REDCAP_IMPORT = False
+REDCAP_IMPORT = True
 REDCAP_URL = 'https://redcap.ethz.ch/api/'
 
 # Put your API token here
 RECAP_API_TOKEN = ''
+
+# specify a study config file
+# Name of a file found in mike_analysis
+STUDY_CONFIG = ''

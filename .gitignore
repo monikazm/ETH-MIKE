@@ -248,3 +248,6 @@ dmypy.json
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,python
 .Rproj.user
+
+# vscode settings
+.vscode/
