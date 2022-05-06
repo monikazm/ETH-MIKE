@@ -156,6 +156,10 @@ For 2. the data can be retrieved using the RedCap `export_records` API, which re
 
 [redcap_api.py]: ../mike_analysis/core/redcap_api.py
 
+## SQLMigrator 
+
+The SQLMigrator handles all the functionalities related to the front-end and analysis (output) databases. It contains methods to migrate tables, views and indices from the frontend database to th output database. Furthermore it can also be used to to add completely new tables, views and indices to the output database. The SQLMigrator is passed on to all the main components of the pipeline so they can use it to make the necessary changes to the output database without needing to know the specific functionalities related to the databases. 
+
 ## Study config
 
 The study configuration is used to determine, what is copied from the frontend, what is imported from REDCap and how all the information is combined into additional study specific views in the output database. If you want to create a new study you can copy the template and fill in all the required information. Add the code needed for additional study specific views or modifications to the output database to the `create_study_views(migrator: SQLiteMigrator)` function. This function will be called in the end and has therefore acces to everything that was already transfered into the output database. 
