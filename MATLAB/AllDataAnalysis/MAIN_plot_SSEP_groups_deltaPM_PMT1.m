@@ -123,8 +123,9 @@ ylabel('Delta Position Matching Absolute Error (deg)')
 ylim([-6.5 12])
 legend([p1(1),p2(1)],'considerable improvement','not considerable improvement','Location','South')
 set(gca,'FontSize',12)
-print('plots/Paper/220322_Figure3A','-dpng')
-figure2pdf('plots/Paper/220322_Figure3A'); 
+title('Change in Proprioception vs SSEP groups') 
+print('plots/Paper/220524_Figure3A','-dpng')
+figure2pdf('plots/Paper/220504_Figure3A'); 
 % % calculatampions
 % latamp.T1.norm_PMmedian = nanmedian(latamp.T1.norm(:,5)); 
 % latamp.T1.norm_PMiqr = iqr(latamp.T1.norm(:,5)); 
@@ -176,7 +177,8 @@ xlabel('SSEP amplitude & latency group @ T1')
 ylabel('Position Matching Absolute Error (deg) @ T1') 
 ylim([3 30])
 set(gca,'FontSize',12)
-print('plots/Paper/220322_Figure3B','-dpng')
+title('Proprioception @ T1 vs SSEP groups') 
+print('plots/Paper/220504_Figure3B','-dpng')
 
 % Kruskal Wallis
 p_PM_4 = kruskalwallis([latamp.T1.abs(:,5); latamp.T1.norm(:,5)],[g1;g3]); 
