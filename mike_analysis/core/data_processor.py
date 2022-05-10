@@ -88,27 +88,26 @@ class DataProcessor:
         # Create Pseudo Session View
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt('''
             CREATE VIEW "PseudoSession" AS
-            SELECT PatientId, LeftHand, IthSession, SessionStartDate, AssessmentId
+            SELECT PatientId, SessionId, LeftHand, IthSession, SessionStartDate, AssessmentId
             FROM (
-                SELECT PatientId, LeftHand, IthSession, DATE(MIN(SessionStartTime)) AS SessionStartDate
+                SELECT PatientId, SessionId, LeftHand, IthSession, DATE(MIN(StartTime)) AS SessionStartDate
                 FROM (
-                    SELECT S.PatientId, A.LeftHand,
+                    SELECT S.PatientId, A.SessionId, A.LeftHand,
                            ROW_NUMBER() OVER (PARTITION BY S.PatientId, A.LeftHand, A.TaskType ORDER BY AssessmentId ASC) AS IthSession,
-                           S.SessionStartTime
+                           A.StartTime
                     FROM Assessment AS A
                     JOIN Session AS S USING(SessionId)
                 )
                 GROUP BY PatientId, LeftHand, IthSession
             )
             JOIN (
-                SELECT PatientId, LeftHand, IthSession, AssessmentId
+                SELECT PatientId, SessionId, LeftHand, AssessmentId
                 FROM (
-                    SELECT S.PatientId, A.LeftHand, A.AssessmentId,
-                           ROW_NUMBER() OVER (PARTITION BY S.PatientId, A.LeftHand, A.TaskType ORDER BY AssessmentId ASC) AS IthSession
+                    SELECT S.PatientId, A.SessionId, A.LeftHand, A.AssessmentId
                     FROM Assessment AS A
                     JOIN Session AS S USING(SessionId)
                 )
-            ) USING(PatientId, LeftHand, IthSession)
+            ) USING(PatientId, SessionId, LeftHand)
         ''')
 
     def create_result_views(self, combined_session_result_stmt_joins: str):
@@ -138,6 +137,7 @@ class DataProcessor:
                 GROUP BY P.PatientId, PS.LeftHand, PS.IthSession
                 ORDER BY P.SubjectNr, PS.LeftHand, PS.IthSession
         '''
+        print(create_combined_session_result_stmt)
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_combined_session_result_stmt)
         if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study' and cfg.REDCAP_IMPORT):
