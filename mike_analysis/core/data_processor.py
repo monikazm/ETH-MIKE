@@ -137,7 +137,6 @@ class DataProcessor:
                 GROUP BY P.PatientId, PS.LeftHand, PS.IthSession
                 ORDER BY P.SubjectNr, PS.LeftHand, PS.IthSession
         '''
-        print(create_combined_session_result_stmt)
         self.sqlite_migrator.create_or_update_table_index_or_view_from_stmt(
             create_combined_session_result_stmt)
         if (cfg.STUDY_CONFIG == 'ksa_longitudinal_study' and cfg.REDCAP_IMPORT):
