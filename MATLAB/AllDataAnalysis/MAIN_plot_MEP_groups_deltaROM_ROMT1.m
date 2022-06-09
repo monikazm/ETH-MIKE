@@ -73,9 +73,9 @@ latamp.T1.abs_std2 = nanstd(latamp.T1.abs(:,5));
 
 % 3 groups 
 sz = 70;
-g1 = repmat({'Absent'},length(latamp.T1.abs(:,7)),1);
-g2 = repmat({'Impaired'},length(latamp.T1.imp(:,7)),1);
-g3 = repmat({'Normal'},length(latamp.T1.norm(:,7)),1);
+g1 = repmat({'Absent (N=7)'},length(latamp.T1.abs(:,7)),1);
+g2 = repmat({'Impaired (N=18)'},length(latamp.T1.imp(:,7)),1);
+g3 = repmat({'Normal (N=13)'},length(latamp.T1.norm(:,7)),1);
 g = [g1;g2;g3]; 
 figure; 
 boxplot([latamp.T1.abs(:,7); latamp.T1.imp(:,7); latamp.T1.norm(:,7)],g) 
@@ -116,13 +116,13 @@ for i=1:length(latamp.T1.norm(:,7))
        p2 = scatter(3,latamp.T1.norm(i,7),'filled','k');
     end
 end
-xlabel('MEP latency & amplitude @ T1') 
-ylabel('Delta Range of Motion (deg)') 
+xlabel('MEP latency & amplitude at T1') 
+ylabel('Delta Active Range of Motion AROM (deg)') 
 legend([p1(1),p2(1)],'considerable improvement','not considerable improvement','Location','best')
 set(gca,'FontSize',12)
-title('Change in ROM vs MEP groups') 
-print('plots/Paper/220504_FigureSM4_2B','-dpng')
-figure2pdf('plots/Paper/220504_FigureSM4_2B'); 
+%title('Change in AROM vs MEP groups') 
+print('plots/Paper/20220522_FigureSM4_2A','-dpng')
+figure2pdf('plots/Paper/20220522_FigureSM4_2A'); 
 
 % Kruskal Wallis
 p_ROM_1 = kruskalwallis([latamp.T1.abs(:,7); latamp.T1.norm(:,7)],[g1;g3]); 
@@ -161,11 +161,11 @@ for i=1:length(latamp.T1.norm(:,5))
      scatter(3,latamp.T1.norm(i,5),'filled','k'); 
 end
 set(gca,'FontSize',12)
-xlabel('MEP amplitude & latency group @ T1') 
-ylabel('Range of Motion (deg) @ T1') 
+xlabel('MEP amplitude & latency group at T1') 
+ylabel('Active Range of Motion AROM (deg) at T1') 
 ylim([-10 100])
-title('ROM @ T1 vs MEP groups') 
-print('plots/Paper/220504_FigureSM4_2A','-dpng')
+title('AROM at T1 vs MEP groups') 
+print('plots/Paper/20220522_FigureSM4_2B','-dpng')
 
 % Kruskal Wallis
 p_V_4 = kruskalwallis([latamp.T1.abs(:,5); latamp.T1.norm(:,5)],[g1;g3]); 

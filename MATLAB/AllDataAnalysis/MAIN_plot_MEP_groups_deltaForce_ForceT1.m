@@ -115,13 +115,13 @@ for i=1:length(latamp.T1.norm(:,7))
        p2 = scatter(3,latamp.T1.norm(i,7),'filled','k');
     end
 end
-xlabel('MEP latency & amplitude @ T1') 
-ylabel('Delta Maximum Force Flexion (N)') 
+xlabel('MEP latency & amplitude at T1') 
+ylabel('Delta Force Flexion FF (N)') 
 legend([p1(1),p2(1)],'considerable improvement','not considerable improvement','Location','NorthWest')
 set(gca,'FontSize',12)
-title('Change in Force vs MEP groups') 
-print('plots/Paper/220504_FigureSM3B','-dpng')
-figure2pdf('plots/Paper/220504_FigureSM3B'); 
+%title('Change in Force vs MEP groups') 
+print('plots/Paper/220504_FigureSM4E','-dpng')
+figure2pdf('plots/Paper/20220522_FigureSM4E'); 
 
 % 
 % Kruskal Wallis
@@ -162,11 +162,11 @@ for i=1:length(latamp.T1.norm(:,5))
      scatter(3,latamp.T1.norm(i,5),'filled','k'); 
 end
 set(gca,'FontSize',12)
-xlabel('MEP amplitude & latency group @ T1') 
-ylabel('Maximum Force Flexion (N) @ T1') 
+xlabel('MEP amplitude & latency group at T1') 
+ylabel('Force Flexion FF (N) at T1') 
 %ylim([3 30])
-title('Force @ T1 vs MEP groups') 
-print('plots/Paper/220504_FigureSM3A','-dpng')
+%title('Force at T1 vs MEP groups') 
+print('plots/Paper/20220522_FigureSM4F','-dpng')
 
 % Kruskal Wallis
 p_F_4 = kruskalwallis([latamp.T1.abs(:,5); latamp.T1.norm(:,5)],[g1;g3]); 

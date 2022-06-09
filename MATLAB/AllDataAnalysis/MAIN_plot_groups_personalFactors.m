@@ -25,8 +25,8 @@ T = readtable('data/20211013_DataImpaired.csv');
 % 127 - smoothness MAPR
 % 8 - age
 
-A = table2array(T(:,[3 5 47 41 48 61 122 114 92 160 8])); 
-% subject session kUDT FMA BBT MoCA PM Force ROM Vel Age TSS
+A = table2array(T(:,[3 5 47 41 48 61 122 114 92 160 8 9])); 
+% subject session kUDT FMA BBT MoCA PM Force ROM Vel Age TSS gender
 
 %% time since stroke
 
@@ -36,7 +36,7 @@ timeSinceStroke = [];
 for i=1:length(timeStroke)
     timeSinceStroke(i,:) = datenum(timeRoboticTest{i,1}) - datenum(timeStroke{i,1}); 
 end
-A(:,12) = timeSinceStroke; 
+A(:,13) = timeSinceStroke; 
 
 %% clean-up the table 
 
@@ -66,6 +66,7 @@ withREDCap2(:,9) = withREDCap(:,9);
 withREDCap2(:,10) = withREDCap(:,10);
 withREDCap2(:,11) = withREDCap(:,11);
 withREDCap2(:,12) = withREDCap(:,12);
+withREDCap2(:,13) = withREDCap(:,13);
 
 C = sortrows(withREDCap2,'ascend'); 
 
@@ -106,7 +107,9 @@ S1(:,1) = Lia.*S1(:,1);
 S1(S1(:,1)==0,:)= [];
 
 S3(1,7) = 14.5926361100000; 
-
+S3(33,8) = S1(33,8); 
+S3(33,9) = S1(33,9); 
+S3(33,10) = S1(33,10); 
 
 %% Grouping 
 
@@ -139,28 +142,6 @@ for i = 1:length(S1(:,1))
     end
 end
 
-%% scatterplot time since stroke
-
-figure; 
-scatter(S1(:,12), S1(:,7)-S3(:,7), 'filled'); 
-xlabel('Time since stroke (days)')
-ylabel('Delta Position Matching Absolute Error (deg)')
-
-figure; 
-scatter(S1(:,12), S3(:,8)-S1(:,8), 'filled', 'k'); 
-xlabel('Time since stroke (days) @ T1')
-ylabel('Delta Maximum Force Flexion (N)')
-print('plots/ScatterPlots/211126_Force_timeSinceStroke','-dpng')
-
-%% scatter plot age
-
-figure; 
-scatter(S1(:,11), S3(:,8)-S1(:,8), 'filled', 'k'); 
-xlabel('Age (years) @ T1')
-ylabel('Delta Maximum Force Flexion (N)')
-print('plots/ScatterPlots/211126_Force_age','-dpng')
-
-
 %% grouping
 
 change.S1 = [both.S1; sensory.S1; motor.S1]; 
@@ -173,7 +154,7 @@ g2 = repmat({'No change (N=15)'},length(nochange.S1(:,1)),1);
 g = [g1;g2]; 
 
 figure; 
-boxplot([change.S1(:,12); nochange.S1(:,12)],g) 
+boxplot([change.S1(:,13); nochange.S1(:,13)],g) 
 b = findobj(gca,'tag','Median');
 set(b,{'linew'},{2})
 colors = {[0.85, 0.85, 0.85], [0.85, 0.85, 0.85]};  
@@ -182,23 +163,25 @@ for j=1:length(h)
     patch(get(h(j),'XData'),get(h(j),'YData'),colors{:,j},'FaceAlpha',0.5);
 end
 hold on 
-for i=1:length(change.S1(:,12))
-    scatter(1,change.S1(i,12),'filled','k'); 
+for i=1:length(change.S1(:,13))
+    scatter(1,change.S1(i,13),'filled','k'); 
 end
-for i=1:length(nochange.S1(:,12))
-    scatter(2,nochange.S1(i,12),'filled','k');
+for i=1:length(nochange.S1(:,13))
+    scatter(2,nochange.S1(i,13),'filled','k');
 end
+ylim([10 90])
+set(gca,'FontSize',12)
 xlabel('Groups') 
-ylabel('Time since stroke @ T1') 
-print('plots/BoxPlots/211126_ChangeGroups_TSS','-dpng')
+ylabel('Time since stroke at T1') 
+print('plots/Paper/20220522_FigureSM5_1A','-dpng')
 
-m_tss(1,1) = nanmean(change.S1(:,12)); 
-m_tss(2,1) = nanstd(change.S1(:,12)); 
-m_tss(1,2) = nanmean(nochange.S1(:,12)); 
-m_tss(2,2) = nanstd(nochange.S1(:,12)); 
+m_tss(1,1) = nanmean(change.S1(:,13)); 
+m_tss(2,1) = nanstd(change.S1(:,13)); 
+m_tss(1,2) = nanmean(nochange.S1(:,13)); 
+m_tss(2,2) = nanstd(nochange.S1(:,13)); 
 
 % statistical difference  
-p_tss = kruskalwallis([change.S1(:,12); nochange.S1(:,12)],g); 
+p_tss = kruskalwallis([change.S1(:,13); nochange.S1(:,13)],g); 
 
 %% age
 
@@ -218,9 +201,15 @@ end
 for i=1:length(nochange.S1(:,11))
     scatter(2,nochange.S1(i,11),'filled','k');
 end
+set(gca,'FontSize',12)
 xlabel('Groups') 
 ylabel('Age @ T1') 
 print('plots/BoxPlots/211126_ChangeGroups_Age','-dpng')
+
+m_age(1,1) = nanmean(change.S1(:,11)); 
+m_age(2,1) = nanstd(change.S1(:,11)); 
+m_age(1,2) = nanmean(nochange.S1(:,11)); 
+m_age(2,2) = nanstd(nochange.S1(:,11)); 
 
 % statistical difference  
 p_age = kruskalwallis([change.S1(:,11); nochange.S1(:,11)],g); 
@@ -243,15 +232,55 @@ end
 for i=1:length(nochange.S1(:,6))
     scatter(2,nochange.S1(i,6),'filled','k');
 end
+set(gca,'FontSize',12)
 yline(17,'--k')
 xlabel('Groups') 
 ylabel('MoCA @ T1') 
 print('plots/BoxPlots/211126_ChangeGroups_MoCA','-dpng')
 
+m_moca(1,1) = nanmean(change.S1(:,6)); 
+m_moca(2,1) = nanstd(change.S1(:,6)); 
+m_moca(1,2) = nanmean(nochange.S1(:,6)); 
+m_moca(2,2) = nanstd(nochange.S1(:,6)); 
+
 % statistical difference  
 p_moca = kruskalwallis([change.S1(:,6); nochange.S1(:,6)],g); 
 
 
+%% gender
+p_gen = kruskalwallis([change.S1(:,12); nochange.S1(:,12)],g); 
 
+m_gen(1,1) = sum(change.S1(:,12)); 
+m_gen(1,2) = sum(nochange.S1(:,12)); 
 
+%% FMA
 
+figure; 
+boxplot([change.S1(:,4); nochange.S1(:,4)],g) 
+b = findobj(gca,'tag','Median');
+set(b,{'linew'},{2})
+colors = {[0.85, 0.85, 0.85], [0.85, 0.85, 0.85]};  
+h = findobj(gca,'Tag','Box');
+for j=1:length(h)
+    patch(get(h(j),'XData'),get(h(j),'YData'),colors{:,j},'FaceAlpha',0.5);
+end
+hold on 
+for i=1:length(change.S1(:,4))
+    scatter(1,change.S1(i,4),'filled','k'); 
+end
+for i=1:length(nochange.S1(:,4))
+    scatter(2,nochange.S1(i,4),'filled','k');
+end
+ylim([-2 74])
+set(gca,'FontSize',12)
+xlabel('Groups') 
+ylabel('Fugl-Meyer Assessment at T1') 
+print('plots/Paper/20220522_FigureSM5_1B','-dpng')
+
+m_FMA(1,1) = nanmean(change.S1(:,4)); 
+m_FMA(2,1) = nanstd(change.S1(:,4)); 
+m_FMA(1,2) = nanmean(nochange.S1(:,4)); 
+m_FMA(2,2) = nanstd(nochange.S1(:,4)); 
+
+% statistical difference  
+p_FMA = kruskalwallis([change.S1(:,4); nochange.S1(:,4)],g); 

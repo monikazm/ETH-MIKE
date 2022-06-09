@@ -118,14 +118,14 @@ for i=1:length(latamp.T1.norm(:,7))
        p2 = scatter(3,latamp.T1.norm(i,7),'filled','k');
     end
 end
-xlabel('SSEP amplitude & latency group @ T1') 
-ylabel('Delta Position Matching Absolute Error (deg)') 
+xlabel('SSEP amplitude & latency group at T1') 
+ylabel('Delta Absolute Error AE (deg)') 
 ylim([-6.5 12])
 legend([p1(1),p2(1)],'considerable improvement','not considerable improvement','Location','South')
 set(gca,'FontSize',12)
-title('Change in Proprioception vs SSEP groups') 
-print('plots/Paper/220524_Figure3A','-dpng')
-figure2pdf('plots/Paper/220504_Figure3A'); 
+%title('Change in Proprioception vs SSEP groups') 
+print('plots/Paper/20220609_Figure3B','-dpng')
+figure2pdf('plots/Paper/20220609_Figure3B'); 
 % % calculatampions
 % latamp.T1.norm_PMmedian = nanmedian(latamp.T1.norm(:,5)); 
 % latamp.T1.norm_PMiqr = iqr(latamp.T1.norm(:,5)); 
@@ -173,45 +173,19 @@ hold on
 for i=1:length(latamp.T1.norm(:,5))
     scatter(3,latamp.T1.norm(i,5),'filled','k'); 
 end
-xlabel('SSEP amplitude & latency group @ T1') 
-ylabel('Position Matching Absolute Error (deg) @ T1') 
-ylim([3 30])
+set(gca,'YDir','reverse')
+xlabel('SSEP amplitude & latency group at T1') 
+ylabel('Absolute Error AE (deg) at T1') 
+ylim([-2 27])
 set(gca,'FontSize',12)
-title('Proprioception @ T1 vs SSEP groups') 
-print('plots/Paper/220504_Figure3B','-dpng')
+%title('Proprioception at T1 vs SSEP groups') 
+print('plots/Paper/20220609_Figure3A','-dpng')
 
 % Kruskal Wallis
 p_PM_4 = kruskalwallis([latamp.T1.abs(:,5); latamp.T1.norm(:,5)],[g1;g3]); 
 p_PM_5 = kruskalwallis([latamp.T1.imp(:,5); latamp.T1.norm(:,5)],[g2;g3]); 
 p_PM_6 = kruskalwallis([latamp.T1.abs(:,5); latamp.T1.imp(:,5)],[g1;g2]); 
 
-
-%% matrix
-
-% change.abs = 0; % change sensory & absent SSEP
-% change.imp = 5; %change sensory, impaired SSEP
-% change.norm = 3; %change sensory, normal SSEP
-% nochange.abs = 9; %no change absent SSEP
-% nochange.imp = 5; %no change impaired SSEP
-% nochange.norm = 2; % no change normal SSEP
-% 
-% %C = [kUDTimp_PMimp kUDTnonimp_PMimp; kUDTimp_PMnonimp kUDTnonimp_PMnonimp]; 
-% C = [change.abs change.imp change.norm; nochange.abs nochange.imp nochange.norm]; 
-% label = {'Absent';'Impaired'; 'Normal'}; 
-% 
-% figure; 
-% Chart = confusionchart(C,label); 
-% Chart.OffDiagonalColor = [0.7 0.7 0.7]; %[0.9290 0.6940 0.1250]; 
-% Chart.DiagonalColor = [0.7 0.7 0.7]; %[0.4660 0.6740 0.1880]; 
-% Chart.OuterPosition = [0.1 0.1 0.8 0.8]; 
-% Chart.FontSize = 12; 
-% %Chart.InnerPosition = [0.1 0.1 0.8 0.8]; 
-% xlabel('Proprioception')
-% ylabel('Motor function') 
-% %title('Impairment classification matrix: 70% agreement')
-% set(gca,'FontSize',12)
-% % print('plots/ConfusionMatrices/211129_ChangeGroups','-dpng')
-% 
 
 
 

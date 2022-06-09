@@ -106,11 +106,9 @@ S1(:,1) = Lia.*S1(:,1);
 S1(S1(:,1)==0,:)= [];
 
 S3(1,7) = 14.5926361100000; 
-
-%% Save for reference of non-impaired side calculation
-
-save('SubjectsT1T3Analysis_29112021.mat','S1')
-
+S3(33,4) = S1(33,4); 
+S3(33,5) = S1(33,5); 
+S3(33,6) = S1(33,6); 
 
 %% mean and std 
 
@@ -120,183 +118,39 @@ S1_mean(2,:) = nanstd(S1);
 S3_mean(1,:) = nanmean(S3); 
 S3_mean(2,:) = nanstd(S3); 
 
-%% ttests
-
-[h1_PM,p1_PM] = ttest(S1(:,7),S3(:,7)); 
-[h1_F,p1_F] = ttest(S1(:,8),S3(:,8)); 
-[h1_R,p1_R] = ttest(S1(:,9),S3(:,9)); 
-[h1_V,p1_V] = ttest(S1(:,10),S3(:,10)); 
-
-%% number of subjects that improved above SRD 
+%% number of subjects that improved above SRD or from imp to nonimp  
 n = 1; 
 m = 1;
 k = 1; 
 j = 1; 
 for i=1:length(S1(:,1))
-    if S1(i,7)-S3(i,7) >= 9.12 
-        srd.PM(n) = 1; 
+    if (S1(i,7)-S3(i,7) >= 9.12) || (S1(i,7)> 10.64 && S3(i,7) <= 10.64) 
+        consider.PM(n) = 1; 
         n = n+1; 
     end
 end
 for i=1:length(S1(:,1))
-    if S3(i,8)-S1(i,8) >= 4.88
-        srd.F(m) = 1; 
+    if (S3(i,8)-S1(i,8) >= 4.88) || (S1(i,8)< 10.93 && S3(i,8) >= 10.93 )
+        consider.F(m) = 1; 
         m = m +1; 
     end
 end
 for i=1:length(S1(:,1))
-    if S3(i,9)-S1(i,9) >= 15.58
-        srd.R(k) = 1; 
+    if (S3(i,9)-S1(i,9) >= 15.58) || (S1(i,9)< 63.20 && S3(i,9) >= 63.20)
+        consider.R(k) = 1; 
         k = k +1; 
     end
 end
 for i=1:length(S1(:,1))
-    if S3(i,10)-S1(i,10) >= 60.68
-        srd.V(j) = 1; 
+    if (S3(i,10)-S1(i,10) >= 60.68) || (S1(i,10)< 255.6 && S3(i,10) >= 255.6)
+        consider.V(j) = 1; 
         j = j +1; 
     end
 end
-srd.PM = sum(srd.PM); 
-srd.F = sum(srd.F); 
-srd.R = sum(srd.R); 
-srd.V = sum(srd.V);
-
-%% number of subjects that improved below -SRD 
-n = 1; 
-m = 1;
-k = 1; 
-j = 1; 
-for i=1:length(S1(:,1))
-    if S1(i,7)-S3(i,7) < -9.12 
-        srdneg.PM(n) = 1; 
-        n = n+1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if S3(i,8)-S1(i,8) < -4.88
-        srdneg.F(m) = 1; 
-        m = m +1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if S3(i,9)-S1(i,9) < -15.58
-        srdneg.R(k) = 1; 
-        k = k +1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if S3(i,10)-S1(i,10) < -60.68
-        srdneg.V(j) = 1; 
-        j = j +1; 
-    end
-end
-srdneg.PM = sum(srdneg.PM); 
-srdneg.F = sum(srdneg.F); 
-srdneg.R = sum(srdneg.R); 
-srdneg.V = sum(srdneg.V);
-
-%% number of subjects that changed from impaired to not-impaired 
-n = 1; 
-m = 1;
-k = 1; 
-j = 1; 
-for i=1:length(S1(:,1))
-    if S1(i,7)> 10.64 && S3(i,7) <= 10.64 
-        imp.PM(n) = 1; 
-        n = n+1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if S1(i,8)< 10.93 && S3(i,8) >= 10.93 
-        imp.F(m) = 1; 
-        m = m +1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if S1(i,9)< 63.20 && S3(i,9) >= 63.20
-        imp.R(k) = 1; 
-        k = k +1;
-    end
-end
-for i=1:length(S1(:,1))
-    if S1(i,10)< 255.6 && S3(i,10) >= 255.6
-        imp.V(j) = 1; 
-        j = j +1; 
-    end
-end
-imp.PM = sum(imp.PM); 
-imp.F = sum(imp.F); 
-imp.R = sum(imp.R); 
-imp.V = sum(imp.V);
-
-%% number of subjects that changed from non-impaired to impaired 
-n = 1; 
-m = 1;
-k = 1; 
-j = 1; 
-for i=1:length(S1(:,1))
-    if S1(i,7)<= 10.64 && S3(i,7) > 10.64 
-        impneg.PM(n) = 1; 
-        n = n+1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if S1(i,8)>= 10.93 && S3(i,8) < 10.93 
-        impneg.F(m) = 1; 
-        m = m +1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if S1(i,9)>= 63.20 && S3(i,9) < 63.20
-        impneg.R(k) = 1; 
-        k = k +1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if S1(i,10)>= 255.6 && S3(i,10) < 255.6
-        impneg.V(j) = 1; 
-        j = j +1; 
-    end
-end
-impneg.PM = sum(impneg.PM); 
-impneg.F = sum(impneg.F); 
-impneg.R = sum(impneg.R); 
-impneg.V = sum(impneg.V);
-
-%% number of subjects that sign. improved 
-
-n = 1; 
-m = 1;
-k = 1; 
-j = 1; 
-for i=1:length(S1(:,1))
-    if ((S1(i,7)-S3(i,7)>= 9.12)) || (S1(i,7)> 10.64 && S3(i,7) <= 10.64)
-        changepos.PM(n) = 1; 
-        n = n+1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if ((S3(i,8)-S1(i,8))>= 4.88) || (S1(i,8)< 10.93 && S3(i,8) >= 10.93)
-        changepos.F(m) = 1; 
-        m = m +1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if ((S3(i,9)-S1(i,9))>= 15.58) || (S1(i,9)< 63.20 && S3(i,9) >= 63.20)
-        changepos.R(k) = 1; 
-        k = k +1; 
-    end
-end
-for i=1:length(S1(:,1))
-    if ((S3(i,10)-S1(i,10))>= 60.68) || (S1(i,10)< 255.6 && S3(i,10) >= 255.6)
-        changepos.V(j) = 1; 
-        j = j +1; 
-    end
-end
-changepos.PM = sum(changepos.PM); 
-changepos.F = sum(changepos.F); 
-changepos.R = sum(changepos.R); 
-changepos.V = sum(changepos.V);
+consider.PM = sum(consider.PM); 
+consider.F = sum(consider.F); 
+consider.R = sum(consider.R); 
+consider.V = sum(consider.V);
 
 %% number of subjects that sign. decreased 
 n = 1; 
@@ -362,12 +216,12 @@ end
 set(gca,'YDir','reverse')
 xlim([0.5 2.5]) 
 xticks([1 2]) 
-xticklabels({'Inclusion','Discharge'})
-ylabel('Position Matching Absolute Error (deg)')
-title('Proprioception')
+xticklabels({'Baseline','Discharge'})
+ylabel('Absolute Error AE (deg)')
+%title('Proprioception')
 set(gca,'FontSize',12)
-print('plots/Paper/220321_Figure1A','-dpng')
-
+print('plots/Paper/20220609_Figure1A','-dpng')
+figure2pdf('plots/Paper/20220609_Figure1A'); 
 
 %% plot with subjects that changed significantly - Force Flexion
 
@@ -390,12 +244,12 @@ for i=1:length(S1)
 end
 xlim([0.5 2.5]) 
 xticks([1 2]) 
-xticklabels({'Inclusion','Discharge'})
-ylabel('Maximum Force Flexion (N)')
-title('Motor function')
+xticklabels({'Baseline','Discharge'})
+ylabel('Flexion Force FF (N)')
+%title('Motor function')
 set(gca,'FontSize',12)
-print('plots/Paper/220321_Figure1B','-dpng')
-
+print('plots/Paper/20220609_Figure1B','-dpng')
+figure2pdf('plots/Paper/20220609_Figure1B'); 
 
 %% plot with subjects that changed significantly - Active Range of Motion
 
@@ -418,11 +272,11 @@ for i=1:length(S1)
 end
 xlim([0.5 2.5]) 
 xticks([1 2]) 
-xticklabels({'Inclusion','Discharge'})
-ylabel('Active Range of Motion (deg)')
+xticklabels({'Baseline','Discharge'})
+ylabel('Active Range of Motion AROM (deg)')
 title('Motor function')
 set(gca,'FontSize',12)
-print('plots/Paper/240321_FigureSM6A','-dpng')
+print('plots/Paper/20220521_FigureSM6A','-dpng')
 
 
 %% plot with subjects that changed significantly - Maximum Velocity Extension
@@ -445,8 +299,8 @@ for i=1:length(S1)
 end
 xlim([0.5 2.5]) 
 xticks([1 2]) 
-xticklabels({'Inclusion','Discharge'})
-ylabel('Maximum Velocity Extension (deg/s)')
+xticklabels({'Baseline','Discharge'})
+ylabel('Extension Velocity EV (deg/s)')
 title('Motor function')
 set(gca,'FontSize',12)
-print('plots/Paper/240321_FigureSM6B','-dpng')
+print('plots/Paper/20220521_FigureSM6B','-dpng')

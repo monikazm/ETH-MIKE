@@ -98,13 +98,13 @@ for i=1:length(latamp.T1.norm(:,7))
        p2 = scatter(3,latamp.T1.norm(i,7),'filled','k');
     end
 end
-xlabel('MEP latency & amplitude @ T1') 
-ylabel('Delta Maximum Velocity Extension (deg/s)') 
+xlabel('MEP latency & amplitude at T1') 
+ylabel('Delta Extension Velocity EV (deg/s)') 
 legend([p1(1),p2(1)],'considerable improvement','not considerable improvement','Location','best')
 set(gca,'FontSize',12)
-title('Change in Velocity vs MEP groups') 
-print('plots/Paper/220504_FigureSM4_1B','-dpng')
-figure2pdf('plots/Paper/220504_FigureSM4_1B'); 
+title('Change in Extension Velocity vs MEP groups') 
+print('plots/Paper/20220522_FigureSM4_1A','-dpng')
+figure2pdf('plots/Paper/20220522_FigureSM4_1A'); 
 
 % 
 % Kruskal Wallis
@@ -144,11 +144,11 @@ for i=1:length(latamp.T1.norm(:,5))
      scatter(3,latamp.T1.norm(i,5),'filled','k'); 
 end
 set(gca,'FontSize',12)
-xlabel('MEP amplitude & latency group @ T1') 
-ylabel('Maximum Velocity Extension (deg/s) @ T1') 
+xlabel('MEP amplitude & latency group at T1') 
+ylabel('Extension Velocity EV (deg/s) at T1') 
 %ylim([3 30])
-title('Velocity @ T1 vs MEP groups') 
-print('plots/Paper/220504_FigureSM4_1A','-dpng')
+title('Extension Velocity at T1 vs MEP groups') 
+print('plots/Paper/20220522_FigureSM4_1A','-dpng')
 
 % Kruskal Wallis
 p_V_4 = kruskalwallis([latamp.T1.abs(:,5); latamp.T1.norm(:,5)],[g1;g3]); 

@@ -102,6 +102,159 @@ S3(32,8) = S1(32,8);
 S3(32,9) = S1(32,9); 
 S3(32,10) = S1(32,10); 
 
+%% add one missing subject entry (#40)
+
+S1(43,1) = 40; 
+S1(43,2) = 1; 
+S1(43,3) = 2;
+S1(43,4) = 51;
+S1(43,5) = 31;
+S1(43,6) = 12;
+S1(43,7) = 14.4014303;
+S1(43,8) = 5.891059822;
+S1(43,9) = 60.00324717; 
+S1(43,10) = 77.13920413; 
+
+S3(43,1) = 40; 
+S3(43,2) = 2; 
+S3(43,3) = 3;
+S3(43,4) = 54;
+S3(43,5) = 15;
+S3(43,6) = 11;
+S3(43,7) = 10.81948228;
+S3(43,8) = 7.140993862;
+S3(43,9) = 52.25931944; 
+S3(43,10) = 53.58038117;
+
+%% PM @ T1 and delta BBT
+
+tmp = []; 
+tmp2 = []; 
+n = 1; 
+figure; 
+for i = 1:length(S3(:,1))
+    if S1(i,5)>=3 && S3(i,5)-S1(i,5)<15 && S3(i,5)-S1(i,5)>-5
+    tmp(n,1)=S3(i,5)-S1(i,5); 
+    tmp(n,2)=S1(i,7); 
+    scatter(tmp(n,2),tmp(n,1),'filled','k');
+    n = n +1; 
+    hold on
+    end
+end
+xlim([0 28])
+%ylim([-5 15])
+set(gca,'FontSize',12)
+set(gca,'XDir','reverse')
+ylabel('Delta Box & Block Test (#/min)')
+xlabel('Absolute Error AE (deg) at T1') 
+print('plots/Paper/20220522_FigureSM8D','-dpng')
+
+[rho.DBBTPM1,pval.DBBTPM1] = corr(tmp(:,1),tmp(:,2), 'Type', 'Spearman');
+
+%% delta BBT and delta PM 
+
+tmp = []; 
+tmp2 = []; 
+n = 1; 
+figure; 
+for i = 1:length(S3(:,1))
+    if S1(i,5)>0 && S1(i,7)>10 
+    tmp(n,1)=S3(i,5)-S1(i,5); 
+    tmp(n,2)=S1(i,7)-S3(i,7); 
+    scatter(tmp(n,2),tmp(n,1),'filled','k');
+    n = n +1; 
+    hold on
+    end
+end
+%xlim([0 28])
+%ylim([-5 15])
+set(gca,'FontSize',12)
+ylabel('Delta Box & Block Test (#/min)')
+xlabel('Delta Absolute Error AE (deg)') 
+%print('plots/Paper/20220522_FigureSM8D','-dpng')
+
+[rho.DBBTDPM,pval.DBBTDPM] = corr(tmp(:,1),tmp(:,2), 'Type', 'Spearman');
+
+%% grouping 
+
+% delta proprioception - delta BBT
+
+n = 1; 
+m = 1; 
+k = 1; 
+o = 1; 
+p = 1; 
+for i = 1:length(S1(:,1))
+    if (S1(i,7)-S3(i,7) > 9.12 || (S1(i,7) > 10.64 && S3(i,7) <= 10.64)) && (((S3(i,8)-S1(i,8) > 4.88 || (S1(i,8) < 10.93 && S3(i,8) >= 10.93))) || ((S3(i,9)-S1(i,9) > 15.58 || (S1(i,9) < 63.20 && S3(i,9) >= 63.20))) || ((S3(i,10)-S1(i,10) > 60.68 || (S1(i,10) < 230 && S3(i,10) >= 230)))) 
+       both.S1(n,:) = S1(i,:); 
+       both.S3(n,:) = S3(i,:); 
+       n = n+1; 
+    elseif (S1(i,7)-S3(i,7) < 9.12) && (((S3(i,8)-S1(i,8) > 4.88 || (S1(i,8) < 10.93 && S3(i,8) >= 10.93))) || ((S3(i,9)-S1(i,9) > 15.58 || (S1(i,9) < 63.20 && S3(i,9) >= 63.20))) || ((S3(i,10)-S1(i,10) > 60.68 || (S1(i,10) < 230 && S3(i,10) >= 230)))) 
+       motor.S1(m,:) = S1(i,:); 
+       motor.S3(m,:) = S3(i,:);  
+       m = m+1; 
+    elseif (S1(i,7)-S3(i,7) > 9.12 || (S1(i,7) > 10.64 && S3(i,7) <= 10.64)) && (((S3(i,8)-S1(i,8) < 4.88) && (S3(i,9)-S1(i,9) < 15.58)) && (S3(i,10)-S1(i,10) < 60.68)) 
+       sensory.S1(p,:) = S1(i,:); 
+       sensory.S3(p,:) = S3(i,:);  
+       p = p+1; 
+    elseif  (S1(i,7)-S3(i,7) < 9.12 && (S1(i,7) < 10.64)) && (((S3(i,8)-S1(i,8) < 4.88 && (S1(i,8) > 10.93)) && (S3(i,9)-S1(i,9) < 15.58 && (S1(i,9) > 63.20))) || ((S3(i,8)-S1(i,8) < 4.88 && (S1(i,8) > 10.93)) && (S3(i,10)-S1(i,10) < 60.68 && (S1(i,10) > 230))) || ((S3(i,9)-S1(i,9) < 15.58 && (S1(i,9) > 63.20)) && (S3(i,10)-S1(i,10) < 60.68 && (S1(i,10) > 230)))) 
+       good.S1(k,:) = S1(i,:); 
+       good.S3(k,:) = S3(i,:); 
+       k = k+1; 
+    else
+       neither.S1(o,:) = S1(i,:); 
+       neither.S3(o,:) = S3(i,:); 
+       o = o+1; 
+    end
+end
+
+changeS.S1 = [both.S1; sensory.S1]; 
+nochangeS.S1 = [neither.S1];
+
+changeS.S3 = [both.S3; sensory.S3]; 
+nochangeS.S3 = [neither.S3];
+
+% delta BBT
+g1 = repmat({'Change (N=10)'},length(changeS.S1(:,1)),1);
+g2 = repmat({'No change (N=15)'},length(nochangeS.S1(:,1)),1);
+g = [g1;g2]; 
+figure; 
+boxplot([changeS.S3(:,5)-changeS.S1(:,5); nochangeS.S3(:,5)-nochangeS.S1(:,5)],g) 
+b = findobj(gca,'tag','Median');
+set(b,{'linew'},{2})
+colors = {[0.85, 0.85, 0.85], [0.85, 0.85, 0.85]};  
+h = findobj(gca,'Tag','Box');
+for j=1:length(h)
+    patch(get(h(j),'XData'),get(h(j),'YData'),colors{:,j},'FaceAlpha',0.5);
+end
+hold on 
+for i=1:length(changeS.S1(:,3))
+    scatter(1,changeS.S3(i,5)-changeS.S1(i,5),'filled','k'); 
+end
+for i=1:length(nochangeS.S1(:,3))
+    scatter(2,nochangeS.S3(i,5)-nochangeS.S1(i,5),'filled','k');
+end
+hold on
+set(gca,'FontSize',12)
+xlabel('Groups') 
+ylabel('Delta BBT') 
+%print('plots/Paper/20220522_FigureSM2B','-dpng')
+
+% sensory change groups 
+p_groupsS_BBT = kruskalwallis([changeS.S3(:,5)-changeS.S1(:,5); nochangeS.S3(:,5)-nochangeS.S1(:,5)],g); 
+
+
+%% grouping
+n = 1
+for i = 1:length(S1(:,1))
+    if 
+        
+    end
+end
+
+
+
+
 %% Some motor function needed for proprioceptive improvement 
 % with trend line and separation of data points
 
@@ -130,8 +283,8 @@ for i = 1:length(S1(:,1))
 end
 ylim([-9 12]) 
 xlim([-2 60])
-xlabel('Box & Block Test @ T1')
-ylabel('Delta Position Matching Absolute Error (deg)') 
+xlabel('Box & Block Test (#/min) at T1')
+ylabel('Delta Absolute Error AE (deg)') 
 % line of best fit - green points
 p1 = polyfit(tmp1(:,5),tmp1(:,7)-tmp2(:,7),1);
 px1 = [min(tmp1(:,5)) max(tmp1(:,5))];
@@ -142,11 +295,10 @@ p2 = polyfit(temp1(:,5),temp1(:,7)-temp2(:,7),1);
 px2 = [min(temp1(:,5)) max(temp1(:,5))];
 py2 = polyval(p2, px2);
 c3 = plot(px2, py2,'--k', 'LineWidth', 0.5);
-legend([c1(1), c2(1)], 'PM non-impaired @ T1', 'PM impaired @ T1','Location','best')
+legend([c1(1), c2(1)], 'AE non-impaired at T1', 'AE impaired at T1','Location','best')
 set(gca,'FontSize',12)
-print('plots/Paper/220405_FigureSM8D','-dpng')
+print('plots/Paper/20220522_FigureSM8D','-dpng')
 
-[rho.DPMBBT1_1,pval.DPMBBT1_1] = corr(tmp1(:,5),tmp1(:,7)-tmp2(:,7), 'Type', 'Spearman');
 [rho.DPMBBT1_2,pval.DPMBBT1_2] = corr(temp1(:,5),temp1(:,7)-temp2(:,7), 'Type', 'Spearman');
 
 %% Both motor function and proprioception needed for functional hand use at discharge
@@ -175,9 +327,9 @@ xlim([3 25])
 ylim([-2 70])
 set(gca,'FontSize',12)
 set(gca,'XDir','reverse')
-ylabel('Box & Block Test @ T2')
-xlabel('Position Matching Absolute Error (deg) @ T2') 
-print('plots/Paper/220405_FigureSM8B','-dpng')
+ylabel('Box & Block Test (#/min) at T2')
+xlabel('Absolute Error AE (deg) at T2') 
+print('plots/Paper/20220522_FigureSM8B','-dpng')
 
 % BBT @ T3 vs Force @ T3
 n = 1; 
@@ -198,10 +350,10 @@ py3 = polyval(p3, px3);
 plot(px3, py3,'--k', 'LineWidth', 0.5);
 xlim([-1 43])
 ylim([-2 70])
-ylabel('Box & Block Test @ T2')
-xlabel('Maximum Force Flexion (N) @ T2') 
+ylabel('Box & Block Test (#/min) at T2')
+xlabel('Flexion Force FF (N) at T2') 
 set(gca,'FontSize',12)
-print('plots/Paper/220405_FigureSM8A','-dpng')
+print('plots/Paper/20220522_FigureSM8A','-dpng')
 
 % correlations
 [rho.PMBBT3_p,pval.PMBBT3_p] = corr(tmp(:,1),tmp(:,2), 'Type', 'Spearman');
